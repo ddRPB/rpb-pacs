@@ -24,7 +24,8 @@ local s = DicomObject:new()
 
 print([[
 <?xml version="1.0" encoding="utf-8" ?>
-<wado_query xmlns= "http://www.weasis.org/xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" wadoURL="]]..proxy..[[/pacs/wado.faces;sessionid=]]..session..[[" requireOnlySOPInstanceUID="false" overrideDicomTagsList="0x00000000">
+<manifest xmlns="http://www.weasis.org/xsd/2.5" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+ <arcQuery additionnalParameters="" arcId="1001" baseUrl="]]..proxy..[[/pacs/wado.faces;sessionid=]]..session..[[" requireOnlySOPInstanceUID="false">
   <Patient PatientID="]]..patid..[[" PatientName="]]..r[0].PatientName..[[" PatientBirthDate="]]..r[0].PatientBirthDate..[[" >
     <Study StudyInstanceUID="]]..r[0].StudyInstanceUID..[[" StudyDescription="]]..r[0].StudyDescription..[[" StudyDate="]]..r[0].StudyDate..[[" StudyTime="]]..r[0].StudyTime..[[" >
 ]])
@@ -51,5 +52,6 @@ end
 print([[
     </Study>
   </Patient>
-</wado_query>
+ </arcQuery>
+</manifest>
 ]])
