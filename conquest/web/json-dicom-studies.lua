@@ -56,11 +56,11 @@ end
 
 -- RESPONSE
 
-HTML('Content-type: application/json\n\n');
+print('Content-type: application/json\n')
 local series = queryallseries()
 table.sort(series, function(a,b) return a.StudyInstanceUID<b.StudyInstanceUID end)
 
-jsonstring = [[ { "Studies": [ ]] -- start of json obj, start of studies collection
+print([[{ "Studies": [ ]]) -- start of json obj, start of studies collection
 
 for i=1,#series do
 
@@ -72,78 +72,62 @@ for i=1,#series do
 
   -- If it is a next study
   if split and i~=1 then
-    jsonstring = jsonstring .. [[ ] ]] -- end of series collection if next exist
-    jsonstring = jsonstring .. [[ } ]] -- end of study object if next exist
-    jsonstring = jsonstring .. [[, ]] -- next study can be created
+    print([[ ] } , ]]) -- end of series collection if next exist, end of study object if next exist, next study can be created
   end
 
   -- If  it is first study or next study in a list
   if split then
-    --DICOM study json object
-    jsonstring = jsonstring .. [[ { ]] -- begin of study object
-    
-    jsonstring = jsonstring .. [[ "StudyInstanceUID": "]] .. series[i].StudyInstanceUID .. [[", ]]
+    --DICOM study json object    
+    print([[ { "StudyInstanceUID": "]] .. series[i].StudyInstanceUID .. [[", ]]) -- begin of study object
     
     if series[i].StudyDescription ~= '' and series[i].StudyDescription ~= nil then
       -- Percentage sign is a special character in lua, that is why I need to mask it
       maskedDescription = string.gsub(series[i].StudyDescription, "%%", "%%%%")
-      jsonstring = jsonstring .. [[ "StudyDescription": "]] .. maskedDescription .. [[", ]]  
+      print([[ "StudyDescription": "]] .. maskedDescription .. [[", ]])
     end
 
     if series[i].StudyDate ~= '' and series[i].StudyDate ~= nil then
-      jsonstring = jsonstring .. [[ "StudyDate": "]] .. series[i].StudyDate .. [[", ]]
+      print([[ "StudyDate": "]] .. series[i].StudyDate .. [[", ]])
     end
 
     if series[i].StudyTime ~= '' and series[i].StudyTime ~= nil then
-      jsonstring = jsonstring .. [[ "StudyTime": "]] .. series[i].StudyTime .. [[", ]]
+      print([[ "StudyTime": "]] .. series[i].StudyTime .. [[", ]])
     end
     
-    jsonstring = jsonstring .. [[ "Series" : [ ]] -- begin of series collection
+    print ([[ "Series" : [ ]]) -- begin of series collection
   end
  
   -- DICOM series json collection
-  jsonstring = jsonstring .. [[ { ]] -- begin of series object
-  
-  jsonstring = jsonstring .. [[ "SeriesInstanceUID" : "]] ..series[i].SeriesInstanceUID .. [[", ]]
+  print([[ { "SeriesInstanceUID" : "]] ..series[i].SeriesInstanceUID .. [[", ]]) -- begin of series object
   
   if series[i].SeriesNumber ~= '' and series[i].SeriesNumber ~= nil then
-    jsonstring = jsonstring .. [[ "SeriesNumber": "]] .. series[i].SeriesNumber .. [[", ]]
+    print ([[ "SeriesNumber": "]] .. series[i].SeriesNumber .. [[", ]])
   end
 
   if series[i].SeriesDescription ~= '' and series[i].SeriesDescription ~= nil then
     -- Percentage sign is a special character in lua, that is why I need to mask it
     maskedDescription = string.gsub(series[i].SeriesDescription, "%%", "%%%%")
-    jsonstring = jsonstring .. [[ "SeriesDescription": "]] .. maskedDescription .. [[", ]]
+    print([[ "SeriesDescription": "]] .. maskedDescription .. [[", ]])
   end
  
   if series[i].SeriesDate ~= '' and series[i].SeriesDate ~= nil then
-    jsonstring = jsonstring .. [[ "SeriesDate": "]] .. series[i].SeriesDate .. [[", ]]
+    print([[ "SeriesDate": "]] .. series[i].SeriesDate .. [[", ]])
   end 
 
   if series[i].SeriesTime ~= '' and series[i].SeriesTime ~= nil then
-    jsonstring = jsonstring .. [[ "SeriesTime": "]] .. series[i].SeriesTime .. [[", ]]
+    print([[ "SeriesTime": "]] .. series[i].SeriesTime .. [[", ]])
   end
   
-  jsonstring = jsonstring .. [[ "Modality": "]] .. series[i].Modality .. [[ " ]]
-  
-  jsonstring = jsonstring .. [[ } ]] -- end of series object
+  print([[ "Modality": "]] .. series[i].Modality .. [[ " } ]]) -- end of series object
 
   if i ~= #series then
    if series[i+1].StudyInstanceUID == series[i].StudyInstanceUID then
-    jsonstring = jsonstring .. [[, ]] -- there will be nex series object
+    print([[, ]]) -- there will be nex series object
    end
   end 
-
- --HTML(jsonstring) 
 end
-
---HTML(jsonstring)
 
 if #series > 0 then
-  jsonstring = jsonstring .. [[ ] ]] -- end of series collection
-  jsonstring = jsonstring .. [[ } ]] -- end of study object
+  print([[ ] } ]]) -- end of series collection and end of study object
 end
-jsonstring = jsonstring .. [[ ] ]] -- end of studies collection
-jsonstring = jsonstring .. [[ } ]] -- end of json obj
-
-HTML(jsonstring)
+print([[ ] } ]]) -- end of studies collection and end of json obj

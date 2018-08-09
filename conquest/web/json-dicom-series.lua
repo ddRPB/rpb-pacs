@@ -44,63 +44,53 @@ function queryallimages()
     imaget[k+1].SeriesDescription = images[k].SeriesDescription
     imaget[k+1].Modality = images[k].Modality
   end
-  table.sort(imaget, function(a,b) return a.SOPInstanceUID < b.SOPInstanceUID end)
-
   return imaget
 end
 
 -- RESPONSE
 
-HTML('Content-type: application/json\n');
+print('Content-type: application/json\n')
 local images = queryallimages()
 table.sort(images, function(a,b) return a.SOPInstanceUID<b.SOPInstanceUID end)
 
-jsonstring = [[ { "Series": [ ]] -- start of json obj, start of studies collection
+print([[{ "Series": [ ]]) -- start of json obj, start of studies collection
 
 for i=1,#images do
     
-  -- If it is first study series or next series in a list
-  local split = (i==1) or (images[i-1].SeriesInstanceUID ~= images[i].SeriesInstanceUID)
-
-  -- If it is the next series
-  if split and i~=1 then
-    jsonstring = jsonstring .. [[ ] ]] -- end of images collection if next exist
-    jsonstring = jsonstring .. [[ } ]] -- end of series object if next exist
-    jsonstring = jsonstring .. [[, ]] -- next series can be created
-  end
-
-  -- If  it is first serie or next serie in a list
-  if split then
-    --DICOM study json object
-    jsonstring = jsonstring .. [[ { ]] -- begin of series object
-    jsonstring = jsonstring .. [[ "SeriesInstanceUID": "]] .. images[i].SeriesInstanceUID .. [[", ]]
-    
+  -- If it is first serie
+  if i == 1 then
+    --DICOM series json object
+    print([[ { "SeriesInstanceUID": "]] .. images[i].SeriesInstanceUID .. [[", ]])
+   
     if images[i].SeriesDescription ~= '' and images[i].SeriesDescription ~= nil then
-      jsonstring = jsonstring .. [[ "SeriesDescription": "]] .. images[i].SeriesDescription .. [[", ]]  
+      -- Percentage sign is a special character in lua, that is why I need to mask it
+      maskedDescription = string.gsub(images[i].SeriesDescription, "%%", "%%%%")
+      print([[ "SeriesDescription": "]] .. maskedDescription .. [[", ]])
     end
-    jsonstring = jsonstring .. [[ "Images" : [ ]] -- begin of images collection
+
+    if images[i].Modality ~= '' and images[i].Modality ~= nil then
+      print([[ "Modality": "]] .. images[i].Modality .. [[", ]])
+    end
+
+    -- DICOM images collection
+    print([[ "Images": [ ]]) -- begin of images collection
   end
   
-  -- DICOM images json collection
-  jsonstring = jsonstring .. [[ { ]] -- begin of images object
-  jsonstring = jsonstring .. [[ "SOPInstanceUID" : "]] ..images[i].SOPInstanceUID .. [[", ]]
-
-  jsonstring = jsonstring .. [[ "Modality" : "]] ..images[i].Modality .. [[ " ]]
+  -- DICOM image json object
+  if images[i].SOPInstanceUID ~= '' and images[i].SOPInstanceUID ~= nil then
+    print([[ { "SOPInstanceUID": "]] ..images[i].SOPInstanceUID .. [[" } ]])
+  end
   
-  jsonstring = jsonstring .. [[ } ]] -- end of images object
-
+  --HTML(jsonstring)
   if i ~= #images then
    if images[i+1].SeriesInstanceUID == images[i].SeriesInstanceUID then
-    jsonstring = jsonstring .. [[, ]] -- there will be next images object
+    print([[, ]]) -- there will be next images object
    end
   end  
 end
 
 if #images > 0 then
-  jsonstring = jsonstring .. [[ ] ]] -- end of images collection
-  jsonstring = jsonstring .. [[ } ]] -- end of serie object
+  print([[ ] } ]]) -- end of images collection and  end of series object
 end
-jsonstring = jsonstring .. [[ ] ]] -- end of series collection
-jsonstring = jsonstring .. [[ } ]] -- end of json obj
 
-HTML(jsonstring)
+print([[ ] } ]]) -- end of series collection and end of json object
