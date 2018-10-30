@@ -10,7 +10,6 @@ local modality = CGI('modality');
 local seriestime = CGI('seriesTime');
 
 -- Functions declaration
-
 function queryallimages()
   local images, imaget, b, s
 
@@ -47,11 +46,26 @@ function queryallimages()
   return imaget
 end
 
+function queryallsizes()
+  local images = dbquery('dicomimages', 'objectfile,sopinstanc', 'seriesinst = \'' .. seriesuid .. '\'')
+
+  local imaget={}
+  for k=1,#images do
+    imaget[k]={}
+    imaget[k].SOPInstanceUID = images[k][2]
+    imaget[k].ObjectFile = images[k][1]
+  end
+  return imaget
+end
+
 -- RESPONSE
 
 print('Content-type: application/json\n')
 local images = queryallimages()
 table.sort(images, function(a,b) return a.SOPInstanceUID<b.SOPInstanceUID end)
+
+local files= queryallsizes()
+table.sort(files, function(a,b) return a.SOPInstanceUID<b.SOPInstanceUID end)
 
 print([[{ "Series": [ ]]) -- start of json obj, start of studies collection
 
@@ -78,7 +92,20 @@ for i=1,#images do
   
   -- DICOM image json object
   if images[i].SOPInstanceUID ~= '' and images[i].SOPInstanceUID ~= nil then
-    print([[ { "SOPInstanceUID": "]] ..images[i].SOPInstanceUID .. [[" } ]])
+    
+    -- Determine size of the DICOM file
+    local filename = files[i].ObjectFile
+    local path = "/mnt/data1/" .. filename
+    local file = io.open(path, "r")
+    local size = file:seek("end")
+    io.close(file)
+    
+    if size ~= '' and size ~= nil then
+      print([[ { "SOPInstanceUID": "]] ..images[i].SOPInstanceUID .. [[", ]])
+      print([[ "Size": "]] .. size .. [[" } ]])
+    else
+      print([[ { "SOPInstanceUID": "]] ..images[i].SOPInstanceUID .. [[" } ]])	    
+    end
   end
   
   --HTML(jsonstring)

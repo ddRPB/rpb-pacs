@@ -10,46 +10,35 @@ local sopinstuid = CGI('SopUID');
 -- Functions declaration
 
 function queryonefile()
-  local series, seriest, b, s;
+  local images, imaget, b, s;
 
   if source == '(local)' then
-    s = servercommand('get_param:MyACRNema')
+    s = servercommand('get_param:MyACRNema');
   else
     s = source;
   end
 
-  b=newdicomobject();
+  b = newdicomobject();
   b.PatientID = patientid;
   b.StudyInstanceUID = studyuid;
-  b.SeriesInstanceUID= seriesuid;
-  b.SopInstanceUID = sopinstanceuid;
+  b.SeriesInstanceUID = seriesuid;
+  b.SOPInstanceUID = sopinstuid;
 
-  series=dicomquery(s, 'SERIES', b);
+  images = dicomquery(s, 'IMAGE', b);
 
   -- convert returned DDO (userdata) to table; needed to allow table.sort
-  seriest={}
-  for k1=0,#series-1 do
-    seriest[k1+1]={}
-    seriest[k1+1].StudyDate        = series[k1].StudyDate
-    seriest[k1+1].PatientID        = series[k1].PatientID
-    seriest[k1+1].StudyDate        = series[k1].StudyDate
-    seriest[k1+1].SeriesTime       = series[k1].SeriesTime
-    seriest[k1+1].StudyInstanceUID = series[k1].StudyInstanceUID
-    seriest[k1+1].SeriesDescription= series[k1].SeriesDescription
-    seriest[k1+1].StudyDescription = series[k1].StudyDescription
-    seriest[k1+1].SeriesInstanceUID= series[k1].SeriesInstanceUID
-    seriest[k1+1].Modality         = series[k1].Modality
+  imaget={}
+  for k=0,#images-1 do
+    imaget[k+1]={}
+    imaget[k+1].SOPInstanceUID = images[k].SOPInstanceUID
   end
-  return seriest
+  return imaget
 end
 
 -- RESPONSE
 
-HTML('Content-type: application/json\n\n');
-local series = queryonefile()
-table.sort(series, function(a,b) return a.StudyInstanceUID<b.StudyInstanceUID end)
+print('Content-type: application/json\n')
+local images = queryonefile()
+table.sort(images, function(a,b) return a.SOPInstanceUID<b.SOPInstanceUID end)
 
-jsonstring = [[ { "FoundFilesCount": ]]
-jsonstring = jsonstring .. #series
-jsonstring = jsonstring .. [[ } ]]
-HTML(jsonstring)
+print([[ { "FoundFilesCount": ]] .. #images .. [[ } ]])

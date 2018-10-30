@@ -1,12 +1,12 @@
--- This script is querying ConQuest PACS in order to find out whether
+-- This script is querying ConQuest PACS in order to find out whether 
 -- the PACS API is reachable
 
 -- Functions declaration
 
 -- RESPONSE
 
-HTML('Content-type: text/plain\n\n');
+print('Content-type: text/plain\n');
 
 msg = [[ RPB PACS says: pong ]]
 
-HTML(msg)
+print(msg)
