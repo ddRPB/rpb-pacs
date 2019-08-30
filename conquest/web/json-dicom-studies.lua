@@ -1,133 +1,204 @@
 -- This script is querying ConQuest PACS in order to retrieve 
--- DICOM patient/study/series data restricted via QueryString parameters
+-- DICOM study/series data restricted via QueryString parameters
 -- the data is reported in JSON format
 
-local patientid = CGI('patientidmatch');
-local studyuid = CGI('studyUID');
-local studydate = CGI('studyDate');
-local seriesuid = CGI('seriesUID');
-local modality = CGI('modality');
-local seriestime = CGI('seriesTime');
+-- UseCases:
+-- query one patient all (*) studies with all series
+-- query one patient study with all series
+-- query one patient study with one series
+
+-- do not allow query on all (*) patients
+
+-- Helper functions declaration
+
+function isempty(s)
+  return s == nil or s == '';
+end
+
+-- Supporting old naming conventions
+local patientid;
+local patientidmatch = CGI('patientidmatch');
+if isempty(patientidmatch) then
+  patientid = CGI('PatientID');
+else
+  patientid = patientidmatch;
+end
+
+-- Supporting old naming conventions
+local studyuid;
+local oldstudyuid = CGI('studyUID');
+if isempty(oldstudyuid) then
+  studyuid = CGI('StudyUID');
+else
+  studyuid = oldstudyuid;
+end
+
+-- Supporting old naming conventions
+local studydate;
+local oldstudydate = CGI('studyDate');
+if isempty(oldstudydate) then
+  studydate = CGI('StudyDate');
+else
+  studydate = oldstudydate;
+end
+
+-- Supporting old naming conventions
+local seriesuid;
+local oldseriesuid = CGI('seriesUID');
+if isempty(oldseriesuid) then
+  seriesuid = CGI('SeriesUID');
+else
+  seriesuid = oldseriesuid;
+end
+
+-- Supporting old naming conventions
+local modality;
+local oldmodality = CGI('modality');
+if isempty(oldmodality) then
+  modality = CGI('Modality');
+else
+  modality = oldmodality;
+end
+
+-- Supporting old naming conventions
+local seriestime;
+local oldseriestime = CGI('seriesTime');
+if isempty(oldseriestime) then
+  seriestime = CGI('SeriesTime')
+else
+  seriestime = oldseriestime
+end
 
 -- Functions declaration
 
 function queryallseries()
-  local series, seriest, b, s;
+  local series, seriest, q, s;
 
   if source == '(local)' then
-    s = servercommand('get_param:MyACRNema')
+    s = servercommand('get_param:MyACRNema');
   else
     s = source;
   end
- 
-  b = newdicomobject();
-  b.PatientID = patientid;
-  b.StudyInstanceUID = studyuid;
-  b.StudyDescription = '';
-  b.StudyDate = studydate;
-  b.StudyTime = '';
-  b.SeriesInstanceUID = seriesuid;
-  b.SeriesNumber = '';
-  b.SeriesDescription = '';
-  b.SeriesDate = '';
-  b.SeriesTime = seriestime;
-  b.Modality = modality;
- 
-  series = dicomquery(s, 'SERIES', b);
-  
-  -- convert returned DDO (userdata) to table; needed to allow table.sort
-  seriest={}
-  for k1=0,#series-1 do
-    seriest[k1+1]={}
-    seriest[k1+1].PatientID        = series[k1].PatientID
-    seriest[k1+1].StudyInstanceUID = series[k1].StudyInstanceUID
-    seriest[k1+1].StudyDescription = series[k1].StudyDescription
-    seriest[k1+1].StudyDate        = series[k1].StudyDate
-    seriest[k1+1].StudyTime        = series[k1].StudyTime
-    seriest[k1+1].SeriesInstanceUID= series[k1].SeriesInstanceUID
-    seriest[k1+1].SeriesNumber     = series[k1].SeriesNumber
-    seriest[k1+1].SeriesDescription= series[k1].SeriesDescription
-    seriest[k1+1].SeriesDate       = series[k1].SeriesDate
-    seriest[k1+1].SeriesTime       = series[k1].SeriesTime
-    seriest[k1+1].Modality         = series[k1].Modality
+
+  if not isempty(patientid) and patientid ~= '*' then
+    q = newdicomobject();
+
+    q.PatientID = patientid;
+    q.StudyInstanceUID = studyuid;
+    q.StudyDescription = '';
+    q.StudyDate = studydate;
+    q.StudyTime = '';
+    q.SeriesInstanceUID = seriesuid;
+    q.SeriesNumber = '';
+    q.SeriesDescription = '';
+    q.SeriesDate = '';
+    q.SeriesTime = seriestime;
+    q.Modality = modality;
+
+    series = dicomquery(s, 'SERIES', q);
+
+    -- convert returned DDO (userdata) to table; needed to allow table.sort
+    seriest = {}
+    for i = 0, #series-1 do
+      seriest[i+1] = {};
+      seriest[i+1].PatientID        = series[i].PatientID;
+      seriest[i+1].StudyInstanceUID = series[i].StudyInstanceUID;
+      seriest[i+1].StudyDescription = series[i].StudyDescription;
+      seriest[i+1].StudyDate        = series[i].StudyDate;
+      seriest[i+1].StudyTime        = series[i].StudyTime;
+      seriest[i+1].SeriesInstanceUID= series[i].SeriesInstanceUID;
+      seriest[i+1].SeriesNumber     = series[i].SeriesNumber;
+      seriest[i+1].SeriesDescription= series[i].SeriesDescription;
+      seriest[i+1].SeriesDate       = series[i].SeriesDate;
+      seriest[i+1].SeriesTime       = series[i].SeriesTime;
+      seriest[i+1].Modality         = series[i].Modality;
+    end
   end
+
   return seriest
 end
 
 -- RESPONSE
 
-print('Content-type: application/json\n')
-local series = queryallseries()
-table.sort(series, function(a,b) return a.StudyInstanceUID<b.StudyInstanceUID end)
+print('Content-type: application/json\n');
 
-print([[{ "Studies": [ ]]) -- start of json obj, start of studies collection
+local series = queryallseries();
 
-for i=1,#series do
+print([[{ "Studies": [ ]]); -- start of json obj, start of studies collection
 
-  if series[i].StudyDate == '' then series[i].StudyDate = series[i].SeriesDate end
-  if series[i].StudyDate == '' or series[i].StudyDate == nil then series[i].StudyDate = 'Unknown' end
-  
-  -- Determine whether it is first study or next study in a list (split necessary)
-  local split = (i==1) or (series[i-1].StudyInstanceUID ~= series[i].StudyInstanceUID)
+if series ~= nil then
 
-  -- If it is a next study
-  if split and i~=1 then
-    print([[ ] } , ]]) -- end of series collection if next exist, end of study object if next exist, next study can be created
-  end
+  table.sort(series, function(a, b) return a.StudyInstanceUID < b.StudyInstanceUID end);
 
-  -- If  it is first study or next study in a list
-  if split then
-    --DICOM study json object    
-    print([[ { "StudyInstanceUID": "]] .. series[i].StudyInstanceUID .. [[", ]]) -- begin of study object
-    
-    if series[i].StudyDescription ~= '' and series[i].StudyDescription ~= nil then
+  for i = 1, #series do
+
+    if series[i].StudyDate == '' then series[i].StudyDate = series[i].SeriesDate end
+    if series[i].StudyDate == '' or series[i].StudyDate == nil then series[i].StudyDate = 'Unknown' end
+
+    -- Determine whether it is first study or next study in a list (split necessary)
+    local split = (i == 1) or (series[i-1].StudyInstanceUID ~= series[i].StudyInstanceUID);
+
+    -- If it is a next study
+    if split and i ~= 1 then
+      print([[ ] } , ]]); -- end of series collection if next exist, end of study object if next exist, next study can be created
+    end
+
+    -- If it is first study or next study in a list
+    if split then
+
+      -- DICOM study json object
+      print([[ { "StudyInstanceUID": "]] .. series[i].StudyInstanceUID .. [[", ]]); -- begin of study object
+
+      if series[i].StudyDescription ~= '' and series[i].StudyDescription ~= nil then
+        -- Percentage sign is a special character in lua, that is why I need to mask it
+        maskedDescription = string.gsub(series[i].StudyDescription, "%%", "%%%%");
+        print([[ "StudyDescription": "]] .. maskedDescription .. [[", ]]);
+      end
+
+      if series[i].StudyDate ~= '' and series[i].StudyDate ~= nil then
+        print([[ "StudyDate": "]] .. series[i].StudyDate .. [[", ]]);
+      end
+
+      if series[i].StudyTime ~= '' and series[i].StudyTime ~= nil then
+        print([[ "StudyTime": "]] .. series[i].StudyTime .. [[", ]]);
+      end
+
+      print ([[ "Series" : [ ]]); -- begin of series collection
+    end
+
+    -- DICOM series json collection
+    print([[ { "SeriesInstanceUID" : "]] ..series[i].SeriesInstanceUID .. [[", ]]); -- begin of series object
+
+    if series[i].SeriesNumber ~= '' and series[i].SeriesNumber ~= nil then
+      print ([[ "SeriesNumber": "]] .. series[i].SeriesNumber .. [[", ]]);
+    end
+
+    if series[i].SeriesDescription ~= '' and series[i].SeriesDescription ~= nil then
       -- Percentage sign is a special character in lua, that is why I need to mask it
-      maskedDescription = string.gsub(series[i].StudyDescription, "%%", "%%%%")
-      print([[ "StudyDescription": "]] .. maskedDescription .. [[", ]])
+      maskedDescription = string.gsub(series[i].SeriesDescription, "%%", "%%%%");
+      print([[ "SeriesDescription": "]] .. maskedDescription .. [[", ]]);
     end
 
-    if series[i].StudyDate ~= '' and series[i].StudyDate ~= nil then
-      print([[ "StudyDate": "]] .. series[i].StudyDate .. [[", ]])
+    if series[i].SeriesDate ~= '' and series[i].SeriesDate ~= nil then
+      print([[ "SeriesDate": "]] .. series[i].SeriesDate .. [[", ]]);
     end
 
-    if series[i].StudyTime ~= '' and series[i].StudyTime ~= nil then
-      print([[ "StudyTime": "]] .. series[i].StudyTime .. [[", ]])
+    if series[i].SeriesTime ~= '' and series[i].SeriesTime ~= nil then
+      print([[ "SeriesTime": "]] .. series[i].SeriesTime .. [[", ]]);
     end
-    
-    print ([[ "Series" : [ ]]) -- begin of series collection
-  end
- 
-  -- DICOM series json collection
-  print([[ { "SeriesInstanceUID" : "]] ..series[i].SeriesInstanceUID .. [[", ]]) -- begin of series object
-  
-  if series[i].SeriesNumber ~= '' and series[i].SeriesNumber ~= nil then
-    print ([[ "SeriesNumber": "]] .. series[i].SeriesNumber .. [[", ]])
-  end
 
-  if series[i].SeriesDescription ~= '' and series[i].SeriesDescription ~= nil then
-    -- Percentage sign is a special character in lua, that is why I need to mask it
-    maskedDescription = string.gsub(series[i].SeriesDescription, "%%", "%%%%")
-    print([[ "SeriesDescription": "]] .. maskedDescription .. [[", ]])
-  end
- 
-  if series[i].SeriesDate ~= '' and series[i].SeriesDate ~= nil then
-    print([[ "SeriesDate": "]] .. series[i].SeriesDate .. [[", ]])
-  end 
+    print([[ "Modality": "]] .. series[i].Modality .. [[ " } ]]); -- end of series object
 
-  if series[i].SeriesTime ~= '' and series[i].SeriesTime ~= nil then
-    print([[ "SeriesTime": "]] .. series[i].SeriesTime .. [[", ]])
+    if i ~= #series then
+      if series[i+1].StudyInstanceUID == series[i].StudyInstanceUID then
+        print([[, ]]); -- there will be nex series object
+      end
+    end
   end
   
-  print([[ "Modality": "]] .. series[i].Modality .. [[ " } ]]) -- end of series object
-
-  if i ~= #series then
-   if series[i+1].StudyInstanceUID == series[i].StudyInstanceUID then
-    print([[, ]]) -- there will be nex series object
-   end
-  end 
+  if #series > 0 then
+    print([[ ] } ]]); -- end of series collection and end of study object
+  end
 end
 
-if #series > 0 then
-  print([[ ] } ]]) -- end of series collection and end of study object
-end
-print([[ ] } ]]) -- end of studies collection and end of json obj
+print([[ ] } ]]); -- end of studies collection and end of json obj

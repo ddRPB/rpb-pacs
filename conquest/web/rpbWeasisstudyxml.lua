@@ -1,3 +1,6 @@
+--TODO: check if reading StudyDescription from DB instead of DICOM helps with special character encoding (ä,..)
+--TODO: or other way of handling special characters as ASCII
+
 print('Content-Type: application/xml\n')
 
 local patid = string.gsub(study2, ':.*$', '')

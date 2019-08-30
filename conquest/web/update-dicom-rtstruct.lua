@@ -1,11 +1,14 @@
--- This script is querying ConQuest PACS in order to find out whether 
--- a specific DICOM file restricted via QueryString parameters exists
--- the data is reported in JSON format
+-- This script is querying ConQuest PACS in order to retrieve
+-- DICOM RTSTRUCT instance restricted via QueryString parameters
+-- and update specified ROIName with provided new value
 
 local patientid = CGI('PatientID');
 local studyuid = CGI('StudyUID');
 local seriesuid = CGI('SeriesUID');
 local sopuid = CGI('SopUID');
+local roiname = CGI('RoiName');
+local roinumber = CGI('RoiNumber');
+local value = CGI('Value');
 
 -- Functions declaration
 
@@ -49,6 +52,18 @@ function queryonefile()
   return imaget;
 end
 
+function updatertstruct(images)
+  if not isempty(roinumber) then
+    for i = 1, #images do
+      local imagelocation = patientid .. ':' .. images[i].SOPInstanceUID;
+      servercommand('lua:'.."modified = false; structs=DicomObject:new(); structs:Read('"..imagelocation.."'); if (structs.Modality == 'RTSTRUCT') then for i = 0, #structs.StructureSetROISequence-1 do if (structs.StructureSetROISequence[i].ROIName == '"..roiname.."' and structs.StructureSetROISequence[i].ROINumber == '"..roinumber.."') then structs.StructureSetROISequence[i].ROIName = '"..value.."'; modified=true; end; end; if modified == true then structs:AddImage(); end; end;");
+      return true;
+    end
+  end
+
+  return false;
+end
+
 -- RESPONSE
 
 print('Content-type: application/json\n');
@@ -56,9 +71,13 @@ print('Content-type: application/json\n');
 local images = queryonefile();
 
 local count = 0;
+local updated = 0;
+
 if images ~= nil then
-  table.sort(images, function(a, b) return a.SOPInstanceUID < b.SOPInstanceUID end);
   count = #images;
+  if updatertstruct(images) then
+    updated = updated + 1;
+  end
 end
 
-print([[ { "FoundFilesCount": ]] .. count .. [[ } ]]);
+print([[ { "FoundFilesCount": ]] .. count .. [[, "UpdatedFilesCount": ]] .. updated .. [[ } ]]);

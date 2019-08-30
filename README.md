@@ -9,8 +9,7 @@ To be supported PACS servers (future):
 * [Orthanc](http://www.orthanc-server.com)
 
 Supported DICOM web viewers:
-* [DWV](http://ivmartel.github.io/dwv)
-* [Weasis](https://dcm4che.atlassian.net/wiki/display/WEA/Home)
+* [Weasis](https://nroduit.github.io)
 
 ## Conquest
 Provided .lua scripts have to be configured properly withing Conquest web dicom.ini file.

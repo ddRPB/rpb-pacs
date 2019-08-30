@@ -1,12 +1,13 @@
--- This script is querying ConQuest PACS in order to find out whether 
--- the PACS API is reachable
-
--- Functions declaration
+-- This script is querying ConQuest PACS in order to dummy test PACS API
 
 -- RESPONSE
 
 print('Content-type: text/plain\n');
 
-msg = [[ RPB PACS says: pong ]]
+if source == '(local)' then
+    s = servercommand('get_param:MyACRNema');
+else
+    s = source;
+end
 
-print(msg)
+print(s .. [[ says: pong]]);
