@@ -7,9 +7,6 @@
 -- query one patient with all studies
 -- query one patient with one study
 
---TODO: check if reading StudyDescription from DB instead of DICOM helps with special character encoding (ä,..)
---TODO: or other way of handling special characters as ASCII
-
 local patientid = CGI('PatientID');
 local studyuid = CGI('StudyUID');
 
@@ -17,6 +14,19 @@ local studyuid = CGI('StudyUID');
 
 function isempty(s)
     return s == nil or s == '';
+end
+
+local hex_to_char = function(x)
+    return string.char(tonumber(x, 16))
+end
+
+local parameterdecode = function(parameter)
+    if parameter == nil then
+        return
+    end
+    parameter = parameter:gsub("+", " ")
+    parameter = parameter:gsub("%%(%x%x)", hex_to_char)
+    return parameter
 end
 
 function queryallstudies()
@@ -30,34 +40,38 @@ function queryallstudies()
 
     if not isempty(patientid) then
 
-        q = newdicomobject();
-        q.PatientID = patientid;
-        q.Sex = '';
-        q.PatientBirthDate = '';
-
-        if not isempty(studyuid) then
-            q.StudyInstanceUID = studyuid;
-        else
-            q.StudyInstanceUID = '';
-        end
-
-        q.StudyDescription = '';
-        q.StudyDate = '';
-        q.StudyTime = '';
-
-        studies = dicomquery(s, 'STUDY', q);
-
         -- convert returned DDO (userdata) to table; needed to allow table.sort
         studiest = {};
-        for i = 0, #studies-1 do
-            studiest[i+1] = {};
-            studiest[i+1].PatientID        = studies[i].PatientID;
-            studiest[i+1].Sex              = studies[i].Sex;
-            studiest[i+1].PatientBirthDate = studies[i].PatientBirthDate;
-            studiest[i+1].StudyInstanceUID = studies[i].StudyInstanceUID;
-            studiest[i+1].StudyDescription = studies[i].StudyDescription;
-            studiest[i+1].StudyDate        = studies[i].StudyDate;
-            studiest[i+1].StudyTime        = studies[i].StudyTime;
+        i = 0;
+        for pid in string.gmatch(parameterdecode(patientid), '([^,]+)') do
+            q = newdicomobject();
+            q.PatientID = pid;
+            q.Sex = '';
+            q.PatientBirthDate = '';
+
+            if not isempty(studyuid) then
+                q.StudyInstanceUID = studyuid;
+            else
+                q.StudyInstanceUID = '';
+            end
+
+            q.StudyDescription = '';
+            q.StudyDate = '';
+            q.StudyTime = '';
+
+            studies = dicomquery(s, 'STUDY', q);
+            for j = 0, #studies-1 do
+                studiest[i+j+1] = {};
+                studiest[i+j+1].PatientID        = studies[j].PatientID;
+                studiest[i+j+1].Sex              = studies[j].Sex;
+                studiest[i+j+1].PatientBirthDate = studies[j].PatientBirthDate;
+                studiest[i+j+1].StudyInstanceUID = studies[j].StudyInstanceUID;
+                studiest[i+j+1].StudyDescription = studies[j].StudyDescription;
+                studiest[i+j+1].StudyDate        = studies[j].StudyDate;
+                studiest[i+j+1].StudyTime        = studies[j].StudyTime;
+            end
+
+            i = i + 1;
         end
     end
 
