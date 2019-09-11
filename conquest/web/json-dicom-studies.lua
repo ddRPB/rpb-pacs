@@ -118,6 +118,39 @@ function queryallseries()
   return seriest
 end
 
+function getoneinstance(pid, stuid, seuid)
+  local images, q, s;
+
+  if source == '(local)' then
+    s = servercommand('get_param:MyACRNema');
+  else
+    s = source;
+  end
+
+  if not isempty(pid) and pid ~= '*' then
+    if not isempty(stuid) and stuid ~= '*' then
+      if not isempty(seuid) and seuid ~= '*' then
+        q = newdicomobject();
+
+        q.PatientID = pid;
+        q.StudyInstanceUID = stuid;
+        q.SeriesInstanceUID = seuid;
+        q.SOPInstanceUID = '';
+
+        images = dicomquery(s, 'IMAGE', q);
+      end
+    end
+  end
+
+  local dcm;
+  if #images > 0 then
+    dcm = newdicomobject();
+    readdicom(dcm, stuid  .. '\\' .. seuid ..  '\\' .. images[0].SOPInstanceUID);
+  end
+
+  return dcm;
+end
+
 -- RESPONSE
 
 print('Content-type: application/json\n');
@@ -146,8 +179,10 @@ if series ~= nil then
     -- If it is first study or next study in a list
     if split then
 
+      studyInstanceUid = series[i].StudyInstanceUID;
+
       -- DICOM study json object
-      print([[ { "StudyInstanceUID": "]] .. series[i].StudyInstanceUID .. [[", ]]); -- begin of study object
+      print([[ { "StudyInstanceUID": "]] .. studyInstanceUid .. [[", ]]); -- begin of study object
 
       if series[i].StudyDescription ~= '' and series[i].StudyDescription ~= nil then
         -- Percentage sign is a special character in lua, that is why I need to mask it
@@ -166,8 +201,10 @@ if series ~= nil then
       print ([[ "Series" : [ ]]); -- begin of series collection
     end
 
+    seriesInstanceUid = series[i].SeriesInstanceUID;
+
     -- DICOM series json collection
-    print([[ { "SeriesInstanceUID" : "]] ..series[i].SeriesInstanceUID .. [[", ]]); -- begin of series object
+    print([[ { "SeriesInstanceUID" : "]] .. seriesInstanceUid .. [[", ]]); -- begin of series object
 
     if series[i].SeriesNumber ~= '' and series[i].SeriesNumber ~= nil then
       print ([[ "SeriesNumber": "]] .. series[i].SeriesNumber .. [[", ]]);
@@ -187,7 +224,79 @@ if series ~= nil then
       print([[ "SeriesTime": "]] .. series[i].SeriesTime .. [[", ]]);
     end
 
-    print([[ "Modality": "]] .. series[i].Modality .. [[ " } ]]); -- end of series object
+    modality = series[i].Modality;
+
+    if modality == 'RTPLAN' or modality == 'RTDOSE' or modality == 'RTSTRUCT' or modality == 'RTIMAGE' then
+      dcm = getoneinstance(patientid, studyInstanceUid, seriesInstanceUid);
+
+      if dcm ~= nil then
+
+        if modality == 'RTPLAN' then
+          if not isempty(dcm.RTPlanLabel) then
+            print([[ "RTPlanLabel": "]] .. dcm.RTPlanLabel .. [[", ]]);
+          end
+          if not isempty(dcm.RTPlanName) then
+            print([[ "RTPlanName": "]] .. dcm.RTPlanName .. [[", ]]);
+          end
+          if not isempty(dcm.RTPlanDescription) then
+            print([[ "RTPlanDescription": "]] .. dcm.RTPlanDescription .. [[", ]]);
+          end
+          if not isempty(dcm.PrescriptionDescription) then
+            print([[ "PrescriptionDescription": "]] .. dcm.PrescriptionDescription .. [[", ]]);
+          end
+          if not isempty(dcm.RTPlanDate) then
+            print([[ "RTPlanDate": "]] .. dcm.RTPlanDate .. [[", ]]);
+          end
+
+        elseif modality == 'RTDOSE' then
+          if not isempty(dcm.DoseUnits) then
+            print([[ "DoseUnits": "]] .. dcm.DoseUnits .. [[", ]]);
+          end
+          if not isempty(dcm.DoseType) then
+            print([[ "DoseType": "]] .. dcm.DoseType .. [[", ]]);
+          end
+          if not isempty(dcm.DoseComment) then
+            print([[ "DoseComment": "]] .. dcm.DoseComment .. [[", ]]);
+          end
+          if not isempty(dcm.DoseSummationType) then
+            print([[ "DoseSummationType": "]] .. dcm.DoseSummationType .. [[", ]]);
+          end
+          if not isempty(dcm.InstanceCreationDate) then
+            print([[ "InstanceCreationDate": "]] .. dcm.InstanceCreationDate .. [[", ]]);
+          end
+
+        elseif modality == 'RTSTRUCT' then
+          if not isempty(dcm.StructureSetLabel) then
+            print([[ "StructureSetLabel": "]] .. dcm.StructureSetLabel .. [[", ]]);
+          end
+          if not isempty(dcm.StructureSetName) then
+            print([[ "StructureSetName": "]] .. dcm.StructureSetName .. [[", ]]);
+          end
+          if not isempty(dcm.StructureSetDescription) then
+            print([[ "StructureSetDescription": "]] .. dcm.StructureSetDescription .. [[", ]]);
+          end
+          if not isempty(dcm.StructureSetDate) then
+            print([[ "StructureSetDate": "]] .. dcm.StructureSetDate .. [[", ]]);
+          end
+
+        elseif modality == 'RTIMAGE' then
+          if not isempty(dcm.RTImageLabel) then
+            print([[ "RTImageLabel": "]] .. dcm.RTImageLabel .. [[", ]]);
+          end
+          if not isempty(dcm.RTImageName) then
+            print([[ "RTImageName": "]] .. dcm.RTImageName .. [[", ]]);
+          end
+          if not isempty(dcm.RTImageDescription) then
+            print([[ "RTImageDescription": "]] .. dcm.RTImageDescription .. [[", ]]);
+          end
+          if not isempty(dcm.InstanceCreationDate) then
+            print([[ "InstanceCreationDate": "]] .. dcm.InstanceCreationDate .. [[", ]]);
+          end
+        end
+      end
+    end
+
+    print([[ "Modality": "]] .. modality .. [[" } ]]); -- end of series object
 
     if i ~= #series then
       if series[i+1].StudyInstanceUID == series[i].StudyInstanceUID then
