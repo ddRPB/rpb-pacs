@@ -60,18 +60,21 @@ function queryallstudies()
             q.StudyTime = '';
 
             studies = dicomquery(s, 'STUDY', q);
-            for j = 0, #studies-1 do
-                studiest[i+j+1] = {};
-                studiest[i+j+1].PatientID        = studies[j].PatientID;
-                studiest[i+j+1].Sex              = studies[j].Sex;
-                studiest[i+j+1].PatientBirthDate = studies[j].PatientBirthDate;
-                studiest[i+j+1].StudyInstanceUID = studies[j].StudyInstanceUID;
-                studiest[i+j+1].StudyDescription = studies[j].StudyDescription;
-                studiest[i+j+1].StudyDate        = studies[j].StudyDate;
-                studiest[i+j+1].StudyTime        = studies[j].StudyTime;
-            end
 
-            i = i + 1;
+            if #studies > 0 then
+                for j = 0, #studies-1 do
+                    studiest[i+1] = {};
+                    studiest[i+1].PatientID        = studies[j].PatientID;
+                    studiest[i+1].Sex              = studies[j].Sex;
+                    studiest[i+1].PatientBirthDate = studies[j].PatientBirthDate;
+                    studiest[i+1].StudyInstanceUID = studies[j].StudyInstanceUID;
+                    studiest[i+1].StudyDescription = studies[j].StudyDescription;
+                    studiest[i+1].StudyDate        = studies[j].StudyDate;
+                    studiest[i+1].StudyTime        = studies[j].StudyTime;
+                    
+                    i = i + 1;
+                end
+            end
         end
     end
 
