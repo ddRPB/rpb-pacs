@@ -118,6 +118,30 @@ function queryallseries()
   return seriest
 end
 
+function movesop(s, pid, stuid, seuid, sopuid)
+  
+  if not isempty(pid) and pid ~= '*' then
+    if not isempty(stuid) and stuid ~= '*' then
+      if not isempty(seuid) and seuid ~= '*' then
+        if not isempty(sopuid) and sopuid ~= '*' then
+          m = newdicomobject();
+          m.PatientID = pid;
+          m.StudyInstanceUID = stuid;
+          m.SeriesInstanceUID = seuid;
+          m.SOPInstanceUID = sopuid;
+          m.QueryRetrieveLevel = 'IMAGE';
+          
+          -- last parameter '0' is StudyRoot ('1' is PatientRoot)
+          dicommove(s, s, m, 0);
+          return true;
+        end
+      end
+    end
+  end
+  
+  return false;
+end
+
 function getoneinstance(pid, stuid, seuid)
   local images, q, s;
 
@@ -144,8 +168,20 @@ function getoneinstance(pid, stuid, seuid)
 
   local dcm;
   if #images > 0 then
+
+    -- read the full DICOM object
     dcm = newdicomobject();
     readdicom(dcm, stuid  .. '\\' .. seuid ..  '\\' .. images[0].SOPInstanceUID);
+    
+    -- when reading failed
+    if dcm.SOPInstanceUID == '' or dcm.SOPInstanceUID == nil then
+      
+      -- try to fetch  the local copy from source nodes with cmove
+      movesop(s, pid, stuid, seuid, images[0].SOPInstanceUID)
+
+      -- try to read again (should be locally available)
+      readdicom(dcm, stuid  .. '\\' .. seuid ..  '\\' .. images[0].SOPInstanceUID);
+    end
   end
 
   return dcm;
