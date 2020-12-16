@@ -15,6 +15,10 @@ function isempty(s)
   return s == nil or s == '';
 end
 
+function stringify(s)
+  return string.format("%q", s)
+end
+
 -- Supporting old naming conventions
 local patientid;
 local patientidmatch = CGI('patientidmatch');
@@ -275,10 +279,10 @@ if series ~= nil then
             print([[ "RTPlanName": "]] .. dcm.RTPlanName .. [[", ]]);
           end
           if not isempty(dcm.RTPlanDescription) then
-            print([[ "RTPlanDescription": "]] .. dcm.RTPlanDescription .. [[", ]]);
+            print([[ "RTPlanDescription": ]] .. stringify(dcm.RTPlanDescription) .. [[, ]]);
           end
           if not isempty(dcm.PrescriptionDescription) then
-            print([[ "PrescriptionDescription": "]] .. dcm.PrescriptionDescription .. [[", ]]);
+            print([[ "PrescriptionDescription": ]] .. stringify(dcm.PrescriptionDescription) .. [[, ]]);
           end
           if not isempty(dcm.RTPlanDate) then
             print([[ "RTPlanDate": "]] .. dcm.RTPlanDate .. [[", ]]);
@@ -309,7 +313,7 @@ if series ~= nil then
             print([[ "StructureSetName": "]] .. dcm.StructureSetName .. [[", ]]);
           end
           if not isempty(dcm.StructureSetDescription) then
-            print([[ "StructureSetDescription": "]] .. dcm.StructureSetDescription .. [[", ]]);
+            print([[ "StructureSetDescription": ]] .. stringify(dcm.StructureSetDescription) .. [[, ]]);
           end
           if not isempty(dcm.StructureSetDate) then
             print([[ "StructureSetDate": "]] .. dcm.StructureSetDate .. [[", ]]);
@@ -323,7 +327,7 @@ if series ~= nil then
             print([[ "RTImageName": "]] .. dcm.RTImageName .. [[", ]]);
           end
           if not isempty(dcm.RTImageDescription) then
-            print([[ "RTImageDescription": "]] .. dcm.RTImageDescription .. [[", ]]);
+            print([[ "RTImageDescription": ]] .. stringify(dcm.RTImageDescription) .. [[, ]]);
           end
           if not isempty(dcm.InstanceCreationDate) then
             print([[ "InstanceCreationDate": "]] .. dcm.InstanceCreationDate .. [[", ]]);
