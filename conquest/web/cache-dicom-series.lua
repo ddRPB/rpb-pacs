@@ -53,6 +53,7 @@ function queryallimages(fromPacs)
                 q.PatientID = patientid;
                 q.StudyInstanceUID = studyuid;
                 q.SeriesInstanceUID = seriesuid;
+                q.SOPInstanceUID = '';
 
                 images = dicomquery(fromPacs, 'IMAGE', q);
 
@@ -101,6 +102,7 @@ end
 print('Content-type: application/json\n');
 
 -- TODO: ideally this would be readable from config of DICOM proxy
+-- Lua has a method get_amap(index) that returns the list
 local nodes = {'RPBPacs1', 'RPBPacs2'};
 
 local images = querydbimages();

@@ -42,6 +42,7 @@ function queryallstudies(fromPacs)
         q = newdicomobject()
 
         q.PatientID = patientid;
+        q.StudyInstanceUID = '';
 
         studies = dicomquery(fromPacs, 'STUDY', q);
 
@@ -83,6 +84,7 @@ end
 print('Content-type: application/json\n');
 
 -- TODO: ideally this would be readable from config of DICOM proxy
+-- Lua has a method get_amap(index) that returns the list
 local nodes = {'RPBPacs1', 'RPBPacs2'};
 
 local studies = querydbstudies();
