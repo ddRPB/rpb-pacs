@@ -15,8 +15,12 @@ function isempty(s)
   return s == nil or s == '';
 end
 
+function sequenceIsEmpty(seq)
+  return seq == nil or #seq == 0;
+end
+
 function stringify(s)
-  return string.format("%q", s)
+  return string.format("%q", s);
 end
 
 -- Supporting old naming conventions
@@ -68,9 +72,9 @@ end
 local seriestime;
 local oldseriestime = CGI('seriesTime');
 if isempty(oldseriestime) then
-  seriestime = CGI('SeriesTime')
+  seriestime = CGI('SeriesTime');
 else
-  seriestime = oldseriestime
+  seriestime = oldseriestime;
 end
 
 -- Functions declaration
@@ -98,28 +102,38 @@ function queryallseries()
     q.SeriesDate = '';
     q.SeriesTime = seriestime;
     q.Modality = modality;
+    q.FrameOfReferenceUID = '';
+    q.Manufacturer = '';
+    q.ReferringPhysicianName = '';
+    q.ManufacturerModelName = '';
+    q.BodyPartExamined = '';
 
     series = dicomquery(s, 'SERIES', q);
 
     -- convert returned DDO (userdata) to table; needed to allow table.sort
-    seriest = {}
+    seriest = {};
     for i = 0, #series-1 do
       seriest[i+1] = {};
-      seriest[i+1].PatientID        = series[i].PatientID;
+      seriest[i+1].PatientID = series[i].PatientID;
       seriest[i+1].StudyInstanceUID = series[i].StudyInstanceUID;
       seriest[i+1].StudyDescription = series[i].StudyDescription;
-      seriest[i+1].StudyDate        = series[i].StudyDate;
-      seriest[i+1].StudyTime        = series[i].StudyTime;
-      seriest[i+1].SeriesInstanceUID= series[i].SeriesInstanceUID;
-      seriest[i+1].SeriesNumber     = series[i].SeriesNumber;
-      seriest[i+1].SeriesDescription= series[i].SeriesDescription;
-      seriest[i+1].SeriesDate       = series[i].SeriesDate;
-      seriest[i+1].SeriesTime       = series[i].SeriesTime;
-      seriest[i+1].Modality         = series[i].Modality;
+      seriest[i+1].StudyDate = series[i].StudyDate;
+      seriest[i+1].StudyTime = series[i].StudyTime;
+      seriest[i+1].SeriesInstanceUID = series[i].SeriesInstanceUID;
+      seriest[i+1].SeriesNumber = series[i].SeriesNumber;
+      seriest[i+1].SeriesDescription = series[i].SeriesDescription;
+      seriest[i+1].SeriesDate = series[i].SeriesDate;
+      seriest[i+1].SeriesTime = series[i].SeriesTime;
+      seriest[i+1].Modality = series[i].Modality;
+      seriest[i+1].FrameOfReferenceUID = series[i].FrameOfReferenceUID;
+      seriest[i+1].Manufacturer = series[i].Manufacturer;
+      seriest[i+1].ReferringPhysicianName = series[i].ReferringPhysicianName;
+      seriest[i+1].ManufacturerModelName = series[i].ManufacturerModelName;
+      seriest[i+1].BodyPartExamined = series[i].BodyPartExamined;
     end
   end
 
-  return seriest
+  return seriest;
 end
 
 function movesop(s, pid, stuid, seuid, sopuid)
@@ -178,7 +192,7 @@ function getoneinstance(pid, stuid, seuid)
     readdicom(dcm, stuid  .. '\\' .. seuid ..  '\\' .. images[0].SOPInstanceUID);
     
     -- when reading failed
-    if dcm.SOPInstanceUID == '' or dcm.SOPInstanceUID == nil then
+    if isempty(dcm.SOPInstanceUID) then
       
       -- try to fetch  the local copy from source nodes with cmove
       movesop(s, pid, stuid, seuid, images[0].SOPInstanceUID)
@@ -189,6 +203,77 @@ function getoneinstance(pid, stuid, seuid)
   end
 
   return dcm;
+end
+
+-- RT objects printing
+
+function printRtStruct(rtStruct)
+  if not isempty(rtStruct.StructureSetLabel) then
+    print([[ "StructureSetLabel": "]] .. rtStruct.StructureSetLabel .. [[", ]]);
+  end
+  if not isempty(rtStruct.StructureSetName) then
+    print([[ "StructureSetName": "]] .. rtStruct.StructureSetName .. [[", ]]);
+  end
+  if not isempty(rtStruct.StructureSetDescription) then
+    print([[ "StructureSetDescription": ]] .. stringify(rtStruct.StructureSetDescription) .. [[, ]]);
+  end
+  if not isempty(rtStruct.StructureSetDate) then
+    print([[ "StructureSetDate": "]] .. rtStruct.StructureSetDate .. [[", ]]);
+  end
+end
+
+function printRtPlan(rtPlan)
+  if not isempty(rtPlan.RTPlanLabel) then
+    print([[ "RTPlanLabel": "]] .. rtPlan.RTPlanLabel .. [[", ]]);
+  end
+  if not isempty(rtPlan.RTPlanName) then
+    print([[ "RTPlanName": "]] .. rtPlan.RTPlanName .. [[", ]]);
+  end
+  if not isempty(rtPlan.RTPlanDescription) then
+    print([[ "RTPlanDescription": ]] .. stringify(rtPlan.RTPlanDescription) .. [[, ]]);
+  end
+  if not isempty(rtPlan.PrescriptionDescription) then
+    print([[ "PrescriptionDescription": ]] .. stringify(rtPlan.PrescriptionDescription) .. [[, ]]);
+  end
+  if not isempty(rtPlan.RTPlanDate) then
+    print([[ "RTPlanDate": "]] .. rtPlan.RTPlanDate .. [[", ]]);
+  end
+  if not isempty(rtPlan.RTPlanGeometry) then
+    print([[ "RTPlanGeometry": "]] .. rtPlan.RTPlanGeometry .. [[", ]]);
+  end
+end
+
+function printRtDose(rtDose)
+  if not isempty(rtDose.DoseUnits) then
+    print([[ "DoseUnits": "]] .. rtDose.DoseUnits .. [[", ]]);
+  end
+  if not isempty(rtDose.DoseType) then
+    print([[ "DoseType": "]] .. rtDose.DoseType .. [[", ]]);
+  end
+  if not isempty(rtDose.DoseComment) then
+    print([[ "DoseComment": "]] .. rtDose.DoseComment .. [[", ]]);
+  end
+  if not isempty(rtDose.DoseSummationType) then
+    print([[ "DoseSummationType": "]] .. rtDose.DoseSummationType .. [[", ]]);
+  end
+  if not isempty(rtDose.InstanceCreationDate) then
+    print([[ "InstanceCreationDate": "]] .. rtDose.InstanceCreationDate .. [[", ]]);
+  end
+end
+
+function printRtImage(rtImage)
+  if not isempty(rtImage.RTImageLabel) then
+    print([[ "RTImageLabel": "]] .. rtImage.RTImageLabel .. [[", ]]);
+  end
+  if not isempty(rtImage.RTImageName) then
+    print([[ "RTImageName": "]] .. rtImage.RTImageName .. [[", ]]);
+  end
+  if not isempty(rtImage.RTImageDescription) then
+    print([[ "RTImageDescription": ]] .. stringify(rtImage.RTImageDescription) .. [[, ]]);
+  end
+  if not isempty(rtImage.InstanceCreationDate) then
+    print([[ "InstanceCreationDate": "]] .. rtImage.InstanceCreationDate .. [[", ]]);
+  end
 end
 
 -- RESPONSE
@@ -224,17 +309,17 @@ if series ~= nil then
       -- DICOM study json object
       print([[ { "StudyInstanceUID": "]] .. studyInstanceUid .. [[", ]]); -- begin of study object
 
-      if series[i].StudyDescription ~= '' and series[i].StudyDescription ~= nil then
+      if not isempty(series[i].StudyDescription) then
         -- Percentage sign is a special character in lua, that is why I need to mask it
         maskedDescription = string.gsub(series[i].StudyDescription, "%%", "%%%%");
         print([[ "StudyDescription": "]] .. maskedDescription .. [[", ]]);
       end
 
-      if series[i].StudyDate ~= '' and series[i].StudyDate ~= nil then
+      if not isempty(series[i].StudyDate ) then
         print([[ "StudyDate": "]] .. series[i].StudyDate .. [[", ]]);
       end
 
-      if series[i].StudyTime ~= '' and series[i].StudyTime ~= nil then
+      if not isempty(series[i].StudyTime) then
         print([[ "StudyTime": "]] .. series[i].StudyTime .. [[", ]]);
       end
 
@@ -246,22 +331,42 @@ if series ~= nil then
     -- DICOM series json collection
     print([[ { "SeriesInstanceUID" : "]] .. seriesInstanceUid .. [[", ]]); -- begin of series object
 
-    if series[i].SeriesNumber ~= '' and series[i].SeriesNumber ~= nil then
+    if not isempty(series[i].SeriesNumber) then
       print ([[ "SeriesNumber": "]] .. series[i].SeriesNumber .. [[", ]]);
     end
 
-    if series[i].SeriesDescription ~= '' and series[i].SeriesDescription ~= nil then
+    if not isempty(series[i].SeriesDescription) then
       -- Percentage sign is a special character in lua, that is why I need to mask it
       maskedDescription = string.gsub(series[i].SeriesDescription, "%%", "%%%%");
       print([[ "SeriesDescription": "]] .. maskedDescription .. [[", ]]);
     end
 
-    if series[i].SeriesDate ~= '' and series[i].SeriesDate ~= nil then
+    if not isempty(series[i].SeriesDate) then
       print([[ "SeriesDate": "]] .. series[i].SeriesDate .. [[", ]]);
     end
 
-    if series[i].SeriesTime ~= '' and series[i].SeriesTime ~= nil then
+    if not isempty(series[i].SeriesTime) then
       print([[ "SeriesTime": "]] .. series[i].SeriesTime .. [[", ]]);
+    end
+
+    if not isempty(series[i].FrameOfReferenceUID) then
+      print([[ "FrameOfReferenceUID": "]] .. series[i].FrameOfReferenceUID .. [[", ]])
+    end
+
+    if not isempty(series[i].Manufacturer) then
+      print([[ "Manufacturer": "]] .. series[i].Manufacturer .. [[", ]])
+    end
+
+    if not isempty(series[i].ReferringPhysicianName) then
+      print([[ "ReferringPhysicianName": "]] .. series[i].ReferringPhysicianName .. [[", ]])
+    end
+
+    if not isempty(series[i].ManufacturerModelName) then
+      print([[ "ManufacturerModelName": "]] .. series[i].ManufacturerModelName .. [[", ]])
+    end
+
+    if not isempty(series[i].BodyPartExamined) then
+      print([[ "BodyPartExamined": ]] .. stringify(series[i].BodyPartExamined) .. [[, ]])
     end
 
     modality = series[i].Modality;
@@ -271,67 +376,18 @@ if series ~= nil then
 
       if dcm ~= nil then
 
+        if not isempty(dcm.ImageType) then
+          print([[ "ImageType": ]] .. stringify(dcm.ImageType) .. [[, ]])
+        end
+
         if modality == 'RTPLAN' then
-          if not isempty(dcm.RTPlanLabel) then
-            print([[ "RTPlanLabel": "]] .. dcm.RTPlanLabel .. [[", ]]);
-          end
-          if not isempty(dcm.RTPlanName) then
-            print([[ "RTPlanName": "]] .. dcm.RTPlanName .. [[", ]]);
-          end
-          if not isempty(dcm.RTPlanDescription) then
-            print([[ "RTPlanDescription": ]] .. stringify(dcm.RTPlanDescription) .. [[, ]]);
-          end
-          if not isempty(dcm.PrescriptionDescription) then
-            print([[ "PrescriptionDescription": ]] .. stringify(dcm.PrescriptionDescription) .. [[, ]]);
-          end
-          if not isempty(dcm.RTPlanDate) then
-            print([[ "RTPlanDate": "]] .. dcm.RTPlanDate .. [[", ]]);
-          end
-
+          printRtPlan(dcm);
         elseif modality == 'RTDOSE' then
-          if not isempty(dcm.DoseUnits) then
-            print([[ "DoseUnits": "]] .. dcm.DoseUnits .. [[", ]]);
-          end
-          if not isempty(dcm.DoseType) then
-            print([[ "DoseType": "]] .. dcm.DoseType .. [[", ]]);
-          end
-          if not isempty(dcm.DoseComment) then
-            print([[ "DoseComment": "]] .. dcm.DoseComment .. [[", ]]);
-          end
-          if not isempty(dcm.DoseSummationType) then
-            print([[ "DoseSummationType": "]] .. dcm.DoseSummationType .. [[", ]]);
-          end
-          if not isempty(dcm.InstanceCreationDate) then
-            print([[ "InstanceCreationDate": "]] .. dcm.InstanceCreationDate .. [[", ]]);
-          end
-
+          printRtDose(dcm);
         elseif modality == 'RTSTRUCT' then
-          if not isempty(dcm.StructureSetLabel) then
-            print([[ "StructureSetLabel": "]] .. dcm.StructureSetLabel .. [[", ]]);
-          end
-          if not isempty(dcm.StructureSetName) then
-            print([[ "StructureSetName": "]] .. dcm.StructureSetName .. [[", ]]);
-          end
-          if not isempty(dcm.StructureSetDescription) then
-            print([[ "StructureSetDescription": ]] .. stringify(dcm.StructureSetDescription) .. [[, ]]);
-          end
-          if not isempty(dcm.StructureSetDate) then
-            print([[ "StructureSetDate": "]] .. dcm.StructureSetDate .. [[", ]]);
-          end
-
+          printRtStruct(dcm);
         elseif modality == 'RTIMAGE' then
-          if not isempty(dcm.RTImageLabel) then
-            print([[ "RTImageLabel": "]] .. dcm.RTImageLabel .. [[", ]]);
-          end
-          if not isempty(dcm.RTImageName) then
-            print([[ "RTImageName": "]] .. dcm.RTImageName .. [[", ]]);
-          end
-          if not isempty(dcm.RTImageDescription) then
-            print([[ "RTImageDescription": ]] .. stringify(dcm.RTImageDescription) .. [[, ]]);
-          end
-          if not isempty(dcm.InstanceCreationDate) then
-            print([[ "InstanceCreationDate": "]] .. dcm.InstanceCreationDate .. [[", ]]);
-          end
+          printRtImage(dcm);
         end
       end
     end
