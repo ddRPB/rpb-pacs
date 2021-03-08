@@ -175,8 +175,8 @@ function queryimages(fromPacs, patientId, studyUid, seriesUid)
 
     if not isempty(fromPacs) then
         if not isempty(patientId) and patientId ~= '*' then
-            if not isempty(studyUid) then
-                if not isempty(seriesUid) then
+            if studyUid ~= '*' then
+                if seriesUid ~= '*' then
 
                     q = newdicomobject();
 
@@ -238,7 +238,8 @@ local patientIsCached = false;
 local timeout = 5;
 for k = 1, timeout do
     virtualStudies = querystudies(s, patientid);
-    virtualImages = queryimages(s, patientid, '*', '*');
+    -- Wildcard * is not allowed in InstanceUIDs but empty string is
+    virtualImages = queryimages(s, patientid, '', '');
 
     localStudies = querydbstudies(patientid);
     localSopCount = querydbpatientimages(patientid, localStudies);
