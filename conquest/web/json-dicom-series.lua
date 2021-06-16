@@ -512,7 +512,7 @@ if images ~= nil then
         print([[ "SOPInstanceUID": "]] .. sopInstanceUid .. [[", ]]);
         print([[ "Size": "]] .. size .. [[" } ]]);
       else
-        print([[ { "SOPInstanceUID": "]] .. sopInstanceUid .. [[" } ]]);
+        print([[ "SOPInstanceUID": "]] .. sopInstanceUid .. [[" } ]]);
       end
     end
 
