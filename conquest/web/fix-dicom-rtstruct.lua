@@ -1,6 +1,7 @@
 -- This script is querying ConQuest PACS in order to retrieve
 -- DICOM RTSTRUCT instance restricted via QueryString parameters
 -- and fix ReviewerName for approved structs
+-- and clear out FrameOfReferenceRelationshipSequences with Treatment planning reference point created by Oncentra
 
 local patientid = CGI('PatientID')
 local studyuid = CGI('StudyUID');
@@ -52,7 +53,8 @@ end
 function fixrtstruct(images)
   for i = 1, #images do
     local imagelocation = patientid .. ':' .. images[i].SOPInstanceUID;
-    servercommand('lua:'.."modified = false; struct=DicomObject:new(); struct:Read('"..imagelocation.."'); if (struct.Modality == 'RTSTRUCT' and struct.ApprovalStatus == 'APPROVED') then if (struct.ReviewerName == '') then struct.ReviewerName = 'PN'; modified = true; end; if (modified == true) then struct:AddImage(); end; end;");
+    servercommand('lua:'.."modified = false; struct = DicomObject:new(); struct:Read('"..imagelocation.."'); if (struct.Modality == 'RTSTRUCT' and struct.ApprovalStatus == 'APPROVED') then if (struct.ReviewerName == '') then struct.ReviewerName = 'PN'; modified = true; end; if (modified == true) then struct:AddImage(); end; end;");
+    servercommand('lua:'.."modified = false; struct = DicomObject:new(); struct:Read('"..imagelocation.."'); if (struct.Modality == 'RTSTRUCT' and struct.ManufacturerModelName == 'Oncentra') then if (struct.ReferencedFrameOfReferenceSequence ~= nil and #struct.ReferencedFrameOfReferenceSequence == 2) then if (struct.ReferencedFrameOfReferenceSequence[1].FrameOfReferenceRelationshipSequence ~= nil) then if (struct.ReferencedFrameOfReferenceSequence[1].FrameOfReferenceRelationshipSequence[0].FrameOfReferenceTransformationComment ~= nil and struct.ReferencedFrameOfReferenceSequence[1].FrameOfReferenceRelationshipSequence[0].FrameOfReferenceTransformationComment == 'Treatment planning reference point') then struct.ReferencedFrameOfReferenceSequence:Delete(1); struct.ReferencedFrameOfReferenceSequence[1] = nil; modified = true; end; end; if (struct.ReferencedFrameOfReferenceSequence[0].FrameOfReferenceRelationshipSequence ~= nil) then if (struct.ReferencedFrameOfReferenceSequence[0].FrameOfReferenceRelationshipSequence[0].FrameOfReferenceTransformationComment ~= nil and struct.ReferencedFrameOfReferenceSequence[0].FrameOfReferenceRelationshipSequence[0].FrameOfReferenceTransformationComment == 'Treatment planning reference point') then struct.ReferencedFrameOfReferenceSequence[0].FrameOfReferenceRelationshipSequence:Delete(); struct.ReferencedFrameOfReferenceSequence[0].FrameOfReferenceRelationshipSequence = nil; modified = true; end; end; if (modified == true) then struct:AddImage() end; end; end;")
     return true;
   end
 
