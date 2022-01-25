@@ -19,8 +19,17 @@ function sequenceIsEmpty(seq)
   return seq == nil or #seq == 0;
 end
 
+function escapeStr(s)
+  local inChar  = {'\\', '"', '/', '\b', '\f', '\n', '\r', '\t'};
+  local outChar = {'\\', '"', '/',  'b',  'f',  'n',  'r',  't'} ;
+  for i, c in ipairs(inChar) do
+    s = s:gsub(c, '\\' .. outChar[i]);
+  end
+  return s;
+end
+
 function stringify(s)
-  return string.format("%q", s);
+  return '"' .. escapeStr(s) .. '"';
 end
 
 function getConfigItem(item)
