@@ -16,6 +16,10 @@ function isempty(s)
     return s == nil or s == '';
 end
 
+function stringify(s)
+  return string.format("%q", s);
+end
+
 local hex_to_char = function(x)
     return string.char(tonumber(x, 16))
 end
@@ -58,19 +62,21 @@ function queryallstudies()
             q.StudyDescription = '';
             q.StudyDate = '';
             q.StudyTime = '';
+            q.ModalitiesInStudy = '';
 
             studies = dicomquery(s, 'STUDY', q);
 
             if #studies > 0 then
                 for j = 0, #studies-1 do
                     studiest[i+1] = {};
-                    studiest[i+1].PatientID        = studies[j].PatientID;
-                    studiest[i+1].Sex              = studies[j].Sex;
+                    studiest[i+1].PatientID = studies[j].PatientID;
+                    studiest[i+1].Sex = studies[j].Sex;
                     studiest[i+1].PatientBirthDate = studies[j].PatientBirthDate;
                     studiest[i+1].StudyInstanceUID = studies[j].StudyInstanceUID;
                     studiest[i+1].StudyDescription = studies[j].StudyDescription;
-                    studiest[i+1].StudyDate        = studies[j].StudyDate;
-                    studiest[i+1].StudyTime        = studies[j].StudyTime;
+                    studiest[i+1].StudyDate = studies[j].StudyDate;
+                    studiest[i+1].StudyTime = studies[j].StudyTime;
+                    studiest[i+1].ModalitiesInStudy = studies[j].ModalitiesInStudy;
                     
                     i = i + 1;
                 end
@@ -133,6 +139,10 @@ if studies ~= nil then
             -- Percentage sign is a special character in lua, that is why I need to mask it
             maskedDescription = string.gsub(studies[i].StudyDescription, "%%", "%%%%");
             print([[ "StudyDescription": "]] .. maskedDescription .. [[", ]]);
+        end
+
+        if not isempty(studies[i].ModalitiesInStudy) then
+            print([[ "ModalitiesInStudy": ]] .. stringify(studies[i].ModalitiesInStudy) .. [[, ]]);
         end
 
         if not isempty(studies[i].StudyDate) then
