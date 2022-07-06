@@ -113,6 +113,10 @@ if studies ~= nil then
             studies[i].StudyDate = 'Unknown';
         end
 
+        if isempty(studies[i].StudyTime) then
+            studies[i].StudyTime = '000000.000000';
+        end
+
         -- Determine whether it is first patient or next patient in a list (split necessary)
         local split = (i == 1) or (studies[i-1].PatientID ~= studies[i].PatientID);
 
