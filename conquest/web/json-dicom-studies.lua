@@ -19,8 +19,17 @@ function sequenceIsEmpty(seq)
   return seq == nil or #seq == 0;
 end
 
+function escapeStr(s)
+  local inChar  = {'\\', '"', '/', '\b', '\f', '\n', '\r', '\t'};
+  local outChar = {'\\', '"', '/',  'b',  'f',  'n',  'r',  't'} ;
+  for i, c in ipairs(inChar) do
+    s = s:gsub(c, '\\' .. outChar[i]);
+  end
+  return s;
+end
+
 function stringify(s)
-  return string.format("%q", s);
+  return '"' .. escapeStr(s) .. '"';
 end
 
 -- Supporting old naming conventions
@@ -194,7 +203,7 @@ function getoneinstance(pid, stuid, seuid)
     -- when reading failed
     if isempty(dcm.SOPInstanceUID) then
       
-      -- try to fetch  the local copy from source nodes with cmove
+      -- try to fetch the local copy from source nodes with cmove
       movesop(s, pid, stuid, seuid, images[0].SOPInstanceUID)
 
       -- try to read again (should be locally available)

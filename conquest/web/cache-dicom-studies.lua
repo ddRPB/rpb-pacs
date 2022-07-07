@@ -7,7 +7,7 @@
 
 local patientid = CGI('PatientID');
 local studyuid = CGI('StudyUID');
-local seriescount = CGI('SeriesCount');
+local seriescount = CGI('SeriesCount'); -- TODO: this can be removed because we want to cache all virtual study series
 
 -- Functions declaration
 
@@ -15,16 +15,34 @@ function isempty(s)
     return s == nil or s == '';
 end
 
--- Local DB query to determine whether study series are in cache already
-function querydbseries()
-    local seriest;
-    
-    if not isempty(patientid) and patientid ~= '*' then
-        if not isempty(studyuid) and studyuid ~= '*' then
-            local series = dbquery('dicomseries', 'seriesinst', 'studyinsta = \'' .. studyuid .. '\'');
+-- Get source AET
+function getsource()
+    if source == '(local)' then
+        return servercommand('get_param:MyACRNema');
+    else
+        return source;
+    end
+end
 
-            if #series > 0 then
-                seriest = {};
+-- Get AET nodes
+function getnodes()
+    -- TODO: ideally this would be readable from config of DICOM proxy
+    -- Lua has a method get_amap(index) that returns the list
+    --for i = 0, #get_amap(index) do
+    --    print(get_amap(i));
+    --end
+    return {}; -- {'RPBPacs1', 'RPBPacs2'}
+end
+
+-- Local DB query to determine whether study series are in this node already
+function querydbseries(patientId, studyUid)
+    local seriest = {};
+
+    if not isempty(patientId) and patientId ~= '*' then
+        if not isempty(studyUid) and studyUid ~= '*' then
+            local series = dbquery('dicomseries', 'seriesinst', 'studyinsta = \'' .. studyUid .. '\'');
+
+            if series ~= nil and #series > 0 then
                 for i = 1, #series do
                     seriest[i] = {};
                     seriest[i].SeriesInstanceUID = series[i][1];
@@ -32,29 +50,67 @@ function querydbseries()
             end
         end
     end
-    
+
     return seriest;
 end
 
--- Remote PACS query to determine whether study series exists in remote node
-function queryallseries(fromPacs)
+-- Local DB query to determine whether series images are in this node already
+function querydbimages(patientId, studyUid, seriesUid)
+    local imaget = {};
+
+    if not isempty(patientId) and patientId ~= '*' then
+        if not isempty(studyUid) and studyUid ~= '*' then
+            if not isempty(seriesUid) and seriesUid ~= '*' then
+                local images = dbquery('dicomimages', 'objectfile,sopinstanc', 'seriesinst = \'' .. seriesUid .. '\'');
+
+                if images ~= nil and #images > 0 then
+                    for i = 1, #images do
+                        imaget[i] = {};
+                        imaget[i].ObjectFile = images[i][1];
+                        imaget[i].SOPInstanceUID = images[i][2];
+                    end
+                end
+            end
+        end
+    end
+
+    return imaget;
+end
+
+-- Local DB query to determine whether study series images are in this node already
+function querydbstudyimages(patientId, studyUid, localSeries)
+    local localSopCount = 0;
+    if localSeries ~= nil then
+        for i = 1, #localSeries do
+            localImages = querydbimages(patientId, studyUid, localSeries[i].SeriesInstanceUID);
+            localSopCount = localSopCount + #localImages;
+        end
+    end
+
+    return localSopCount;
+end
+
+-- Remote PACS query to determine whether study series exists in remote node/nodes
+function queryseries(fromPacs, patientId, studyUid)
     local series, seriest, q;
 
-    if not isempty(patientid) and patientid ~= '*' then
-        if not isempty(studyuid) and studyuid ~= '*' then
+    if not isempty(fromPacs) then
+        if not isempty(patientId) and patientId ~= '*' then
+            if not isempty(studyUid) and studyUid ~= '*' then
 
-            q = newdicomobject();
+                q = newdicomobject();
 
-            q.PatientID = patientid;
-            q.StudyInstanceUID = studyuid;
-            q.SeriesInstanceUID = '';
+                q.PatientID = patientId;
+                q.StudyInstanceUID = studyUid;
+                q.SeriesInstanceUID = '';
 
-            series = dicomquery(fromPacs, 'SERIES', q);
+                series = dicomquery(fromPacs, 'SERIES', q);
 
-            seriest = {};
-            for i = 0, #series-1 do
-                seriest[i+1] = {};
-                seriest[i+1].SeriesInstanceUID = series[i].SeriesInstanceUID;
+                seriest = {};
+                for i = 0, #series-1 do
+                    seriest[i+1] = {};
+                    seriest[i+1].SeriesInstanceUID = series[i].SeriesInstanceUID;
+                end
             end
         end
     end
@@ -62,26 +118,58 @@ function queryallseries(fromPacs)
     return seriest;
 end
 
--- CMove DICOM study from remote PACS node to local PACS cache
-function movestudy(fromPacs)
-    local m;
+-- Remote PACS query to determine whether series images exists in remote node/nodes
+function queryimages(fromPacs, patientId, studyUid, seriesUid)
+    local images, imaget, q;
 
-    if source == '(local)' then
-        s = servercommand('get_param:MyACRNema');
-    else
-        s = source;
+    if not isempty(fromPacs) then
+        if not isempty(patientId) and patientId ~= '*' then
+            if not isempty(studyUid) and studyUid ~= '*' then
+                if seriesUid ~= '*' then
+
+                    q = newdicomobject();
+
+                    q.PatientID = patientId;
+                    q.StudyInstanceUID = studyUid;
+                    q.SeriesInstanceUID = seriesUid;
+                    q.SOPInstanceUID = '';
+
+                    images = dicomquery(fromPacs, 'IMAGE', q);
+
+                    imaget = {};
+                    for i = 0, #images-1 do
+                        imaget[i+1] = {};
+                        imaget[i+1].SOPInstanceUID = images[i].SOPInstanceUID;
+                    end
+                end
+            end
+        end
     end
 
-    if not isempty(patientid) and patientid ~= '*' then
-        if not isempty(studyuid) and studyuid ~= '*' then
-            m = newdicomobject();
-            m.PatientID = patientid;
-            m.StudyInstanceUID = studyuid;
-            m.QueryRetrieveLevel = 'STUDY';
+    return imaget;
+end
 
-            -- last parameter '0' is StudyRoot ('1' is PatientRoot)
-            dicommove(fromPacs, s, m, 0);
-            return true;
+-- CMove DICOM study from remote PACS node to specified AET
+function movestudy(fromPacs, patientId, studyUid, toPacs)
+    local m;
+
+    if not isempty(patientId) and patientId ~= '*' then
+        if not isempty(studyUid) and studyUid ~= '*' then
+            if not isempty(fromPacs) and not isempty(toPacs) then
+
+                m = newdicomobject();
+                m.PatientID = patientId;
+                m.StudyInstanceUID = studyUid;
+                m.QueryRetrieveLevel = 'STUDY';
+
+                -- last parameter '0' is StudyRoot ('1' is PatientRoot)
+                --print([[ { "MoveStatus": [ ]]);
+                dicommove(fromPacs, toPacs, m, 0);
+                --dicommove(fromPacs, toPacs, m, 0, 'print([[ "]] .. Global.StatusString .. [[", ]])');
+                --print([[ "end" ] } ]]);
+
+                return true;
+            end
         end
     end
 
@@ -89,39 +177,42 @@ function movestudy(fromPacs)
 end
 
 -- RESPONSE
+
 print('Content-type: application/json\n');
 
--- TODO: ideally this would be readable from config of DICOM proxy
--- Lua has a method get_amap(index) that returns the list
-local nodes = {'RPBPacs1', 'RPBPacs2'};
+local s = getsource();
+local nodes = getnodes();
 
-local series = querydbseries();
+-- Try maximum 5 times to fetch everything from nodes to cache
+local studyIsCached = false;
+local timeout = 5;
 local count = 0;
+for k = 1, timeout do
+    virtualSeries = queryseries(s, patientid, studyuid);
+    -- Wildcard * is not allowed in InstanceUIDs but empty string is
+    virtualImages = queryimages(s, patientid, studyuid, '');
 
-if series ~= nil then
-    count = #series;
-end
+    localSeries = querydbseries(patientid, studyuid);
+    localSopCount = querydbstudyimages(patientid, studyuid, localSeries);
 
--- There is not so many series in the cache as it should be
-if not isempty(seriescount) and count < tonumber(seriescount) then
-    -- Check the availability of series on remote PACS nodes
-    for i = 0, #nodes-1 do
-        remote = queryallseries(nodes[i+1]);
-        
-        -- CMove the DICOM study from remote node to local cache
-        if remote ~= nil then
-            if #remote > 0 then
-                if movestudy(nodes[i+1]) then
-                    -- Refresh the number of cached images for DICOM series
-                    series = querydbseries();
-                end
+    -- Number are matching continue with move to final destination
+    if #localSeries == #virtualSeries and localSopCount == #virtualImages then
+        studyIsCached = true;
+        break;
+    else
+        -- Numbers are not matching collect study from nodes
+        for i = 0, #nodes-1 do
+            -- Probe if the node stores any study series
+            nodeSeries = queryseries(nodes[i+1], patientid, studyuid);
+            if (nodeSeries ~= nil and #nodeSeries > 0) then
+                movestudy(nodes[i+1], patientid, studyuid, s);
             end
         end
     end
 end
 
-if series ~= nil then
-    count = #series;
+if studyIsCached then
+    count = #localSeries;
 else
     count = 0;
 end
