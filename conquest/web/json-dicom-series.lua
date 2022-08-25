@@ -321,8 +321,8 @@ function printRtStruct(rtStruct)
   if not isempty(referencedRtSeriesUid) then
     print([[ "ReferencedRTSeriesUID": "]] .. referencedRtSeriesUid.. [[", ]]);
   end
-  if not isempty(rtPlan.ApprovalStatus) then
-    print([[ "ApprovalStatus": "]] .. rtPlan.ApprovalStatus .. [[", ]]);
+  if not isempty(rtStruct.ApprovalStatus) then
+    print([[ "ApprovalStatus": "]] .. rtStruct.ApprovalStatus .. [[", ]]);
   end
 end
 
@@ -410,8 +410,8 @@ function printRtDose(rtDose)
   if not isempty(referencedRtPlanUid) then
     print([[ "ReferencedRTPlanUID": "]] .. referencedRtPlanUid .. [[", ]]);
   end
-  if not isempty(rtPlan.ApprovalStatus) then
-    print([[ "ApprovalStatus": "]] .. rtPlan.ApprovalStatus .. [[", ]]);
+  if not isempty(rtDose.ApprovalStatus) then
+    print([[ "ApprovalStatus": "]] .. rtDose.ApprovalStatus .. [[", ]]);
   end
 end
 
@@ -443,8 +443,8 @@ function printRtImage(rtImage)
   if not isempty(referencedRtPlanUid) then
     print([[ "ReferencedRTPlanUID": "]] .. referencedRtPlanUid .. [[", ]]);
   end
-  if not isempty(rtPlan.ApprovalStatus) then
-    print([[ "ApprovalStatus": "]] .. rtPlan.ApprovalStatus .. [[", ]]);
+  if not isempty(rtImage.ApprovalStatus) then
+    print([[ "ApprovalStatus": "]] .. rtImage.ApprovalStatus .. [[", ]]);
   end
 end
 
