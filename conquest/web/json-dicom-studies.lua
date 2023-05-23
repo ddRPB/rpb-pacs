@@ -359,34 +359,35 @@ if series ~= nil then
     end
 
     if not isempty(series[i].FrameOfReferenceUID) then
-      print([[ "FrameOfReferenceUID": "]] .. series[i].FrameOfReferenceUID .. [[", ]])
+      print([[ "FrameOfReferenceUID": "]] .. series[i].FrameOfReferenceUID .. [[", ]]);
     end
 
     if not isempty(series[i].Manufacturer) then
-      print([[ "Manufacturer": "]] .. series[i].Manufacturer .. [[", ]])
+      print([[ "Manufacturer": "]] .. series[i].Manufacturer .. [[", ]]);
     end
 
     if not isempty(series[i].ReferringPhysicianName) then
-      print([[ "ReferringPhysicianName": "]] .. series[i].ReferringPhysicianName .. [[", ]])
+      print([[ "ReferringPhysicianName": "]] .. series[i].ReferringPhysicianName .. [[", ]]);
     end
 
     if not isempty(series[i].ManufacturerModelName) then
-      print([[ "ManufacturerModelName": "]] .. series[i].ManufacturerModelName .. [[", ]])
+      print([[ "ManufacturerModelName": "]] .. series[i].ManufacturerModelName .. [[", ]]);
     end
 
     if not isempty(series[i].BodyPartExamined) then
-      print([[ "BodyPartExamined": ]] .. stringify(series[i].BodyPartExamined) .. [[, ]])
+      print([[ "BodyPartExamined": ]] .. stringify(series[i].BodyPartExamined) .. [[, ]]);
     end
 
     modality = series[i].Modality;
 
-    if modality == 'RTPLAN' or modality == 'RTDOSE' or modality == 'RTSTRUCT' or modality == 'RTIMAGE' then
+    -- RTIMAGE is excluded from detailed JSON reporting
+    if modality == 'RTPLAN' or modality == 'RTDOSE' or modality == 'RTSTRUCT' then
       dcm = getoneinstance(patientid, studyInstanceUid, seriesInstanceUid);
 
       if dcm ~= nil then
 
         if not isempty(dcm.ImageType) then
-          print([[ "ImageType": ]] .. stringify(dcm.ImageType) .. [[, ]])
+          print([[ "ImageType": ]] .. stringify(dcm.ImageType) .. [[, ]]);
         end
 
         if modality == 'RTPLAN' then
@@ -395,9 +396,10 @@ if series ~= nil then
           printRtDose(dcm);
         elseif modality == 'RTSTRUCT' then
           printRtStruct(dcm);
-        elseif modality == 'RTIMAGE' then
-          printRtImage(dcm);
         end
+        -- elseif modality == 'RTIMAGE' then
+        --   printRtImage(dcm);
+        -- end
       end
     end
 

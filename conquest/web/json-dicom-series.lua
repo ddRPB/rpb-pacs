@@ -507,13 +507,14 @@ if images ~= nil then
       print([[ { ]]); -- start instance
 
       -- RT object - more details
-      if modality == 'RTPLAN' or modality == 'RTDOSE' or modality == 'RTSTRUCT' or modality == 'RTIMAGE' then
+      -- RTIMAGE is excluded from detailed JSON reporting
+      if modality == 'RTPLAN' or modality == 'RTDOSE' or modality == 'RTSTRUCT' then
         dcm = getinstance(patientid, studyuid, seriesuid, sopInstanceUid);
 
         if dcm ~= nil then
 
           if not isempty(dcm.ImageType) then
-            print([[ "ImageType": ]] .. stringify(dcm.ImageType) .. [[, ]])
+            print([[ "ImageType": ]] .. stringify(dcm.ImageType) .. [[, ]]);
           end
 
           if modality == 'RTPLAN' then
@@ -522,9 +523,10 @@ if images ~= nil then
             printRtDose(dcm);
           elseif modality == 'RTSTRUCT' then
             printRtStruct(dcm);
-          elseif modality == 'RTIMAGE' then
-            printRtImage(dcm);
           end
+          -- elseif modality == 'RTIMAGE' then
+          --   printRtImage(dcm);
+          -- end
         end
       end
 
