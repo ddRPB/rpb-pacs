@@ -86,6 +86,8 @@ else
   seriestime = oldseriestime;
 end
 
+local targetaet = CGI('TargetAET');
+
 -- Functions declaration
 
 function queryallseries()
@@ -95,6 +97,10 @@ function queryallseries()
     s = servercommand('get_param:MyACRNema');
   else
     s = source;
+  end
+
+  if not isempty(targetaet) then
+    s = targetaet;
   end
 
   if not isempty(patientid) and patientid ~= '*' then
@@ -176,6 +182,10 @@ function getoneinstance(pid, stuid, seuid)
     s = servercommand('get_param:MyACRNema');
   else
     s = source;
+  end
+
+  if not isempty(targetaet) then
+    s = targetaet;
   end
 
   if not isempty(pid) and pid ~= '*' then
