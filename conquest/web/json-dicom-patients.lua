@@ -9,6 +9,10 @@
 
 local patientid = CGI('PatientID');
 local studyuid = CGI('StudyUID');
+local studydesc = CGI('StudyDescription');
+local modalities = CGI('Modalities');
+local studydate = CGI('StudyDate');
+local targetaet = CGI('TargetAET');
 
 -- Functions declaration
 
@@ -42,6 +46,10 @@ function queryallstudies()
         s = source;
     end
 
+    if not isempty(targetaet) then
+        s = targetaet;
+    end
+
     if not isempty(patientid) then
 
         -- convert returned DDO (userdata) to table; needed to allow table.sort
@@ -50,7 +58,7 @@ function queryallstudies()
         for pid in string.gmatch(parameterdecode(patientid), '([^,]+)') do
             q = newdicomobject();
             q.PatientID = pid;
-            q.Sex = '';
+            q.PatientSex = '';
             q.PatientBirthDate = '';
 
             if not isempty(studyuid) then
@@ -59,10 +67,10 @@ function queryallstudies()
                 q.StudyInstanceUID = '';
             end
 
-            q.StudyDescription = '';
-            q.StudyDate = '';
+            q.StudyDescription = studydesc;
+            q.StudyDate = studydate;
             q.StudyTime = '';
-            q.ModalitiesInStudy = '';
+            q.ModalitiesInStudy = modalities;
 
             studies = dicomquery(s, 'STUDY', q);
 
@@ -70,7 +78,7 @@ function queryallstudies()
                 for j = 0, #studies-1 do
                     studiest[i+1] = {};
                     studiest[i+1].PatientID = studies[j].PatientID;
-                    studiest[i+1].Sex = studies[j].Sex;
+                    studiest[i+1].PatientSex = studies[j].PatientSex;
                     studiest[i+1].PatientBirthDate = studies[j].PatientBirthDate;
                     studiest[i+1].StudyInstanceUID = studies[j].StudyInstanceUID;
                     studiest[i+1].StudyDescription = studies[j].StudyDescription;
@@ -101,8 +109,8 @@ if studies ~= nil then
 
     for i = 1, #studies do
 
-        if isempty(studies[i].Sex) then
-            studies[i].Sex = 'O';
+        if isempty(studies[i].PatientSex) then
+            studies[i].PatientSex = 'O';
         end
 
         if isempty(studies[i].PatientBirthDate) then
@@ -130,7 +138,7 @@ if studies ~= nil then
 
             -- DICOM Patient json object
             print([[ { "PatientID": "]] .. studies[i].PatientID .. [[", ]]); -- begin of study object
-            print([[ "Sex": "]] .. studies[i].Sex .. [[", ]]);
+            print([[ "Sex": "]] .. studies[i].PatientSex .. [[", ]]);
             print([[ "PatientBirthDate": "]] .. studies[i].PatientBirthDate .. [[", ]]);
 
             print ([[ "Studies" : [ ]]); -- begin of studies collection
