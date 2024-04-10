@@ -2,7 +2,7 @@
 -- DICOM Patient data from the PACS
 
 -- UseCases:
--- should be deployed on DICOM data (clinical/research) nodes
+-- should be deployed on DICOM proxy and data nodes
 
 local patientid = CGI('PatientID');
 
@@ -31,13 +31,9 @@ function querydbpatients(patientId)
     return patientst;
 end
 
-function deletePatient(patients)
-    for i = 1, #patients do
-        servercommand('deletepatient:'..patients[i].PatientID..'');
-        return true;
-    end
-
-    return false;
+function deletePatient(id)
+    servercommand('deletepatient:'..id..'');
+    return true;
 end
 
 -- RESPONSE
@@ -51,8 +47,10 @@ local deleted = 0;
 
 if patients ~= nil then
     count = #patients;
-    if deletePatient(patients) then
-        deleted = deleted + 1;
+    for i = 1, #patients do
+        if deletePatient(patients[i].PatientID) then
+            deleted = deleted + 1;
+        end
     end
 end
 
