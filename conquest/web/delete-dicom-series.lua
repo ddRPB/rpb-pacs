@@ -5,7 +5,6 @@
 -- should be deployed on DICOM proxy and data nodes
 
 local patientid = CGI('PatientID');
-local studyuid = CGI('StudyUID');
 local seriesuid = CGI('SeriesUID');
 
 -- Functions declaration
@@ -16,21 +15,18 @@ function isempty(s)
 end
 
 -- Local DB query to determine whether series are in database
-function querydbseries(patientId, studyUid, seriesUid)
+function querydbseries(patientId, seriesUid)
     local seriest = {};
 
     if not isempty(patientId) and patientId ~= '*' then
-        if not isempty(studyUid) and studyUid ~= '*' then
-            if not isempty(seriesUid) and seriesUid ~= '*' then
-                local series = dbquery('dicomseries', 'patientid,studyinsta,seriesinst', 'patientid = \'' .. patientId .. '\'' .. 'and studyinsta = \'' .. studyUid .. '\'' .. 'and seriesinst = \'' .. seriesUid .. '\'');
+        if not isempty(seriesUid) and seriesUid ~= '*' then
+            local series = dbquery('dicomseries', 'seriespat,seriesinst', 'seriespat = \'' .. patientId .. '\'' .. 'and seriesinst = \'' .. seriesUid .. '\'');
 
-                if series ~= nil and #series > 0 then
-                    for i = 1, #series do
-                        seriest[i] = {};
-                        seriest[i].PatientID = series[i][1];
-                        seriest[i].StudyInstaceUID = series[i][2];
-                        seriest[i].SeriesInstanceUID = series[i][3];
-                    end
+            if series ~= nil and #series > 0 then
+                for i = 1, #series do
+                    seriest[i] = {};
+                    seriest[i].PatientID = series[i][1];
+                    seriest[i].SeriesInstanceUID = series[i][2];
                 end
             end
         end
@@ -48,7 +44,7 @@ end
 
 print('Content-type: application/json\n');
 
-local series = querydbseries(patientid, studyuid, seriesuid);
+local series = querydbseries(patientid, seriesuid);
 
 local count = 0;
 local deleted = 0;
