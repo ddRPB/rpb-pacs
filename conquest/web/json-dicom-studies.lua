@@ -86,7 +86,9 @@ else
   seriestime = oldseriestime;
 end
 
+local studydescription = CGI('StudyDescription');
 local targetaet = CGI('TargetAET');
+local rtdetails = CGI('RTDetails');
 
 -- Functions declaration
 
@@ -99,16 +101,12 @@ function queryallseries()
     s = source;
   end
 
-  if not isempty(targetaet) then
-    s = targetaet;
-  end
-
   if not isempty(patientid) and patientid ~= '*' then
     q = newdicomobject();
 
     q.PatientID = patientid;
     q.StudyInstanceUID = studyuid;
-    q.StudyDescription = '';
+    q.StudyDescription = studydescription;
     q.StudyDate = studydate;
     q.StudyTime = '';
     q.SeriesInstanceUID = seriesuid;
@@ -123,8 +121,12 @@ function queryallseries()
     q.ManufacturerModelName = '';
     q.BodyPartExamined = '';
 
-    series = dicomquery(s, 'SERIES', q);
-
+    -- query specific source node
+    if not isempty(targetaet) then
+        series = dicomquery(targetaet, 'SERIES', q);
+    else -- act as proxy and query all source nodes
+        series = dicomquery(s, 'SERIES', q);
+    end
     -- convert returned DDO (userdata) to table; needed to allow table.sort
     seriest = {};
     for i = 0, #series-1 do
@@ -151,7 +153,7 @@ function queryallseries()
   return seriest;
 end
 
-function movesop(s, pid, stuid, seuid, sopuid)
+function movesop(fromPacs, toPacs, pid, stuid, seuid, sopuid)
   
   if not isempty(pid) and pid ~= '*' then
     if not isempty(stuid) and stuid ~= '*' then
@@ -165,7 +167,7 @@ function movesop(s, pid, stuid, seuid, sopuid)
           m.QueryRetrieveLevel = 'IMAGE';
           
           -- last parameter '0' is StudyRoot ('1' is PatientRoot)
-          dicommove(s, s, m, 0);
+          dicommove(fromPacs, toPacs, m, 0);
           return true;
         end
       end
@@ -184,10 +186,6 @@ function getoneinstance(pid, stuid, seuid)
     s = source;
   end
 
-  if not isempty(targetaet) then
-    s = targetaet;
-  end
-
   if not isempty(pid) and pid ~= '*' then
     if not isempty(stuid) and stuid ~= '*' then
       if not isempty(seuid) and seuid ~= '*' then
@@ -198,7 +196,12 @@ function getoneinstance(pid, stuid, seuid)
         q.SeriesInstanceUID = seuid;
         q.SOPInstanceUID = '';
 
-        images = dicomquery(s, 'IMAGE', q);
+        -- query specific source node
+        if not isempty(targetaet) then
+            images = dicomquery(targetaet, 'IMAGE', q);
+        else -- act as proxy and query all source nodes
+            images = dicomquery(s, 'IMAGE', q);
+        end
       end
     end
   end
@@ -213,8 +216,12 @@ function getoneinstance(pid, stuid, seuid)
     -- when reading failed
     if isempty(dcm.SOPInstanceUID) then
       
-      -- try to fetch the local copy from source nodes with cmove
-      movesop(s, pid, stuid, seuid, images[0].SOPInstanceUID)
+      -- try to fetch the local copy from specific source node with cmove
+      if not isempty(targetaet) then
+        movesop(targetaet, s, pid, stuid, seuid, images[0].SOPInstanceUID)
+      else -- try to fetch the local copy from all proxied source nodes with cmove
+        movesop(s, s, pid, stuid, seuid, images[0].SOPInstanceUID)
+      end
 
       -- try to read again (should be locally available)
       readdicom(dcm, stuid  .. '\\' .. seuid ..  '\\' .. images[0].SOPInstanceUID);
@@ -390,8 +397,18 @@ if series ~= nil then
 
     modality = series[i].Modality;
 
+    -- Exclude fetching of RT details for reporting if explicitly requested
+    printRTDetails = true;
+    if not isempty(rtdetails) then
+        if rtdetails == 'Yes' then
+            printRTDetails = true;
+        elseif rtdetails  == 'No' then
+            printRTDetails = false;
+        end
+    end
+
     -- RTIMAGE is excluded from detailed JSON reporting
-    if modality == 'RTPLAN' or modality == 'RTDOSE' or modality == 'RTSTRUCT' then
+    if (modality == 'RTPLAN' or modality == 'RTDOSE' or modality == 'RTSTRUCT') and printRTDetails then
       dcm = getoneinstance(patientid, studyInstanceUid, seriesInstanceUid);
 
       if dcm ~= nil then
