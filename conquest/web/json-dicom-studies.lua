@@ -89,6 +89,7 @@ end
 local studydescription = CGI('StudyDescription');
 local targetaet = CGI('TargetAET');
 local rtdetails = CGI('RTDetails');
+local mrdetails = CGI('MRDetails');
 
 -- Functions declaration
 
@@ -302,6 +303,81 @@ function printRtImage(rtImage)
   end
 end
 
+function printMr(mr)
+  if not isempty(mr.ContrastBolusAgent) then
+    print([[ "ContrastBolusAgent": "]] .. mr.ContrastBolusAgent .. [[", ]]);
+  end
+  if not isempty(mr.ScanningSequence) then
+    print([[ "ScanningSequence": ]] .. stringify(mr.ScanningSequence) .. [[, ]]);
+  end
+  if not isempty(mr.SequenceVariant) then
+    print([[ "SequenceVariant": ]] .. stringify(mr.SequenceVariant) .. [[, ]]);
+  end
+  if not isempty(mr.ScanOptions) then
+    print([[ "ScanOptions": ]] .. stringify(mr.ScanOptions) .. [[, ]]);
+  end
+  if not isempty(mr.MRAcquisitionType) then
+    print([[ "MRAcquisitionType": ]] .. stringify(mr.MRAcquisitionType) .. [[, ]]);
+  end
+  if not isempty(mr.SequenceName) then
+    print([[ "SequenceName": "]] .. mr.SequenceName .. [[", ]]);
+  end
+  if not isempty(mr.AngioFlag) then
+    print([[ "AngioFlag": ]] .. stringify(mr.AngioFlag) .. [[, ]]);
+  end
+  if not isempty(mr.SliceThickness) then
+    print([[ "SliceThickness": "]] .. mr.SliceThickness .. [[", ]]);
+  end
+  if not isempty(mr.RepetitionTime) then
+    print([[ "RepetitionTime": "]] .. mr.RepetitionTime .. [[", ]]);
+  end
+  if not isempty(mr.EchoTime) then
+    print([[ "EchoTime": "]] .. mr.EchoTime .. [[", ]]);
+  end
+  if not isempty(mr.InversionTime) then
+    print([[ "InversionTime": "]] .. mr.InversionTime .. [[", ]]);
+  end
+  if not isempty(mr.NumberOfAverages) then
+    print([[ "NumberOfAverages": "]] .. mr.NumberOfAverages .. [[", ]]);
+  end
+  if not isempty(mr.ImagingFrequency) then
+    print([[ "ImagingFrequency": "]] .. mr.ImagingFrequency .. [[", ]]);
+  end
+  if not isempty(mr.ImagedNucleus) then
+    print([[ "ImagedNucleus": "]] .. mr.ImagedNucleus .. [[", ]]);
+  end
+  if not isempty(mr.EchoNumbers) then
+    print([[ "EchoNumbers": "]] .. mr.EchoNumbers .. [[", ]]);
+  end
+  if not isempty(mr.MagneticFieldStrength) then
+    print([[ "MagneticFieldStrength": "]] .. mr.MagneticFieldStrength .. [[", ]]);
+  end
+  if not isempty(mr.NumberOfPhaseEncodingSteps) then
+    print([[ "NumberOfPhaseEncodingSteps": "]] .. mr.NumberOfPhaseEncodingSteps .. [[", ]]);
+  end
+  if not isempty(mr.EchoTrainLength) then
+    print([[ "EchoTrainLength": "]] .. mr.EchoTrainLength .. [[", ]]);
+  end
+  if not isempty(mr.PercentSampling) then
+    print([[ "PercentSampling": "]] .. mr.PercentSampling .. [[", ]]);
+  end
+  if not isempty(mr.PercentPhaseFieldOfView) then
+    print([[ "PercentPhaseFieldOfView": "]] .. mr.PercentPhaseFieldOfView .. [[", ]]);
+  end
+  if not isempty(mr.ProtocolName) then
+    print([[ "ProtocolName": "]] .. mr.ProtocolName .. [[", ]]);
+  end
+  if not isempty(mr.InPlanePhaseEncodingDirection) then
+    print([[ "InPlanePhaseEncodingDirection": ]] .. stringify(mr.InPlanePhaseEncodingDirection) .. [[, ]]);
+  end
+  if not isempty(mr.FlipAngle) then
+    print([[ "FlipAngle": "]] .. mr.FlipAngle .. [[", ]]);
+  end
+  if not isempty(mr.PatientPosition) then
+    print([[ "PatientPosition": ]] .. stringify(mr.PatientPosition) .. [[, ]]);
+  end
+end
+
 -- RESPONSE
 
 print('Content-type: application/json\n');
@@ -406,6 +482,15 @@ if series ~= nil then
             printRTDetails = false;
         end
     end
+    -- Include fetching of MR details for reporting if explicitly requested
+    printMRDetails = false;
+    if not isempty(mrdetails) then
+        if mrdetails == 'Yes' then
+            printMRDetails = true;
+        elseif mrdetails == 'No' then
+            printMRDetails = false;
+        end
+    end
 
     -- RTIMAGE is excluded from detailed JSON reporting
     if (modality == 'RTPLAN' or modality == 'RTDOSE' or modality == 'RTSTRUCT') and printRTDetails then
@@ -430,11 +515,24 @@ if series ~= nil then
       end
     end
 
+    -- MR detailed JSON reporting
+    if modality == 'MR' and printMRDetails then
+      dcm = getoneinstance(patientid, studyInstanceUid, seriesInstanceUid);
+
+      if not isempty(dcm.ImageType) then
+        print([[ "ImageType": ]] .. stringify(dcm.ImageType) .. [[, ]]);
+      end
+  
+      if dcm ~= nil then
+        printMr(dcm);
+      end
+    end
+
     print([[ "Modality": "]] .. modality .. [[" } ]]); -- end of series object
 
     if i ~= #series then
       if series[i+1].StudyInstanceUID == series[i].StudyInstanceUID then
-        print([[, ]]); -- there will be nex series object
+        print([[, ]]); -- there will be next series object
       end
     end
   end
