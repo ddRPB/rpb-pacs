@@ -19,6 +19,14 @@ function sequenceIsEmpty(seq)
   return seq == nil or #seq == 0;
 end
 
+function startswith(s, start)
+  return s:sub(1, #start) == start
+end
+
+function endswith(s, ending)
+  return ending == "" or s:sub(-#ending) == ending
+end
+
 function escapeStr(s)
   local inChar  = {'\\', '"', '/', '\b', '\f', '\n', '\r', '\t'};
   local outChar = {'\\', '"', '/',  'b',  'f',  'n',  'r',  't'} ;
@@ -499,7 +507,11 @@ if images ~= nil then
       -- Determine size of the DICOM file
       local size;
       if files ~= nil and #files == #images then
-        local file = io.open(getConfigItem(device) .. files[i].ObjectFile, "r");
+        filepath = getConfigItem(device);
+        if not endswith(filepath, "/") then
+          filepath = filepath .. [[/]]
+        end
+        local file = io.open(filepath .. files[i].ObjectFile, "r");
         size = file:seek("end");
         io.close(file);
       end
