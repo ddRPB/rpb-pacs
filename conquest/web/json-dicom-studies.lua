@@ -19,6 +19,14 @@ function sequenceIsEmpty(seq)
   return seq == nil or #seq == 0;
 end
 
+function startswith(s, start)
+  return s:sub(1, #start) == start
+end
+
+function endswith(s, ending)
+  return ending == "" or s:sub(-#ending) == ending
+end
+
 function escapeStr(s)
   local inChar  = {'\\', '"', '/', '\b', '\f', '\n', '\r', '\t'};
   local outChar = {'\\', '"', '/',  'b',  'f',  'n',  'r',  't'} ;
@@ -516,7 +524,7 @@ if series ~= nil then
     end
 
     -- MR detailed JSON reporting
-    if modality == 'MR' and printMRDetails then
+    if modality == 'MR' and printMRDetails and not endswith(series[i].SeriesDescription, "_TENSOR") and not startswith(series[i].SeriesDescription, "svs_se") and not endswith(series[i].SeriesDescription, "PRESTO_KM SENSE") then
       dcm = getoneinstance(patientid, studyInstanceUid, seriesInstanceUid);
 
       if not isempty(dcm.ImageType) then
